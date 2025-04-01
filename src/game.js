@@ -210,16 +210,18 @@ class Asteroid {
     }
 
     split() {
-        if (this.radius <= MIN_ASTEROID_SIZE) {
-            return [];
-        }
+        if (this.radius < MIN_ASTEROID_SIZE) return [];
 
-        const newRadius = this.radius / 2;
+        const newRadius = this.radius * 0.5;
+
+
+        // Add new asteroids        const newRadius = this.radius * 0.6;
         const newAsteroid1 = new Asteroid(this.x, this.y, newRadius);
         const newAsteroid2 = new Asteroid(this.x, this.y, newRadius);
 
-        asteroids.push([newAsteroid1, newAsteroid2]);
-        entities = [...entities, ...asteroids];
+        // Add new asteroids directly to the arrays
+        asteroids.push(newAsteroid1, newAsteroid2);
+        entities.push(newAsteroid1, newAsteroid2);
 
         return [newAsteroid1, newAsteroid2];
     }
@@ -447,26 +449,21 @@ class Dialogue {
 
 function spawnInitialAsteroids() {
     console.log('spawnInitialAsteroids');
-    let asteroids = [];
     for (let i = 0; i < INITIAL_ASTEROID_COUNT; i++) {
         if (entities.length < MAX_ENTITIES) {
             const asteroid = new Asteroid();
             asteroids.push(asteroid);
+            entities.push(asteroid);
         }
     }
-    entities = [...entities, ...asteroids];
-    // entities.push(asteroids);
-    console.log('asteroids:', asteroids);
-    // console.log('entities', entities);
+    console.log('asteroids spawned:', asteroids.length);
 }
-
 
 function createParticles() {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         particles.push(new Particle());
     }
 }
-
 
 function handleCollisions() {
     if (GAME_OVER) {
