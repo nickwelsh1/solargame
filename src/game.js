@@ -608,15 +608,12 @@ const actionBtnSize = {
 
 const resetBtnSize = {
     // button dimensions
-    buttonWidth: ((camera.width < 800) ? camera.width * 0.2 : camera.width * 0.1),
-    buttonHeight: camera.height * 0.1,
-    // Calculate rectangle position in bottom left corner
-    buttonPosX: camera.centerX,
-    buttonPosY: camera.centerY,
-    // getButtonY : () => {
-    //   return height - (height * 0.1 + 10);
-    // }
-}
+    buttonWidth: camera.width * 0.25, // rectWidth * 0.5 (half of camera.width * 0.5)
+    buttonHeight: camera.height * 0.09, // rectHeight * 0.3 (30% of camera.height * 0.3)
+    // Position to match the dialogue's drawing position
+    buttonPosX: camera.width / 2 - (camera.width * 0.25) / 2, // Center horizontally
+    buttonPosY: camera.height / 2 + camera.height * 0.07 - camera.height * 0.045, // Center vertically with text offset
+};
 
 function drawButton(buttonSize) {
     // Stroke style
