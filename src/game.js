@@ -814,7 +814,13 @@ function handlePointerDown(event) {
         console.log('RESET Game');
         console.log('GOOD isUIButtonClicked...', isUIButtonClicked(resetBtnSize));
         GAME_OVER = false;
+        dialogueText = ''; // Clear the dialogue text
         initGame(); // This does not reset all of the game, such as Asteroids and Dust
+        // Clear all entities and respawn asteroids
+        asteroids = [];
+        projectiles = [];
+        entities = [];
+        spawnInitialAsteroids();
     }
 
     if (!GAME_OVER && isUIButtonClicked(actionBtnSize)) {
