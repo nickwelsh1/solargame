@@ -685,13 +685,20 @@ function gameLoop(timestamp) {
     }
 
     // Draw cursor dot
+    drawCursorDot(isOverAsteroid);
+
+    requestAnimationFrame(gameLoop);
+}
+
+
+
+function drawCursorDot(isOverAsteroid) {
     ctx.beginPath();
-    ctx.arc(mouseX, mouseY, 3, 0, Math.PI * 2);
+    // ctx.arc(mouseX, mouseY, 3, 0, Math.PI * 2);
+    ctx.rect(mouseX - 3, mouseY - 3, 6, 6);
     ctx.fillStyle = isOverAsteroid ? 'yellow' : 'white';
     ctx.fill();
     ctx.closePath();
-
-    requestAnimationFrame(gameLoop);
 }
 
 function clearEntities() {
