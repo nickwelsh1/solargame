@@ -901,6 +901,11 @@ canvas.addEventListener('touchend', (e) => {
 //TODO: -ship thruster effect
 //        -ship contrails effect at speed
 // 
+//TODO: shooting fixes
+//        -fix shots start position(s)
+//        -adjust shooting speed(s)
+//        -increase shoot distance
+//
 //TODO:    -fix game re-init of asteroids
 //         -fix re-init of dust
 //         -fix re-init of UI elements
@@ -917,10 +922,7 @@ canvas.addEventListener('touchend', (e) => {
 //TODO: -UI buttons [shoot/interact, change weapon, boost?]
 //        should UI buttons be circles (for finger touch)?
 //        -add change weapon button in canvas
-//TODO: shooting fixes
-//        -fix shots start position(s)
-//        -adjust shooting speed(s)
-//        -increase shoot distance
+//
 //TODO: FX ship at max speed effect
 //TODO: FX dust should streak at speed
 //TODO: ship should take N ms to accelerate to speed
