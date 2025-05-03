@@ -952,8 +952,7 @@ canvas.addEventListener('touchend', (e) => {
 // 
 //TODO: shooting fixes
 //        -fix shots start position(s)
-//        -adjust shooting speed(s)
-//        -increase shoot distance
+
 //
 //TODO:    -fix game re-init of asteroids
 //         -fix re-init of dust
