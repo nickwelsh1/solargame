@@ -257,7 +257,7 @@ class Projectile {
 
 class Laser extends Projectile {
     constructor(x, y, angle) {
-        super(x, y, angle, 500, 2, 1000);
+        super(x, y, angle, 1000, 2, 1000);
         this.name = 'laser';
     }
 
@@ -277,7 +277,7 @@ class Laser extends Projectile {
 
 class Bullet extends Projectile {
     constructor(x, y, angle) {
-        super(x, y, angle, 300, 3, 1500);
+        super(x, y, angle, 600, 3, 6000);
         this.name = 'bullet';
     }
 }
@@ -285,7 +285,8 @@ class Bullet extends Projectile {
 
 class Missile extends Projectile {
     constructor(x, y, angle) {
-        super(x, y, angle, 200, 5, 3000);
+
+        super(x, y, angle, 200, 5, 6000);
         this.name = 'missile';
     }
 
@@ -308,7 +309,7 @@ class Missile extends Projectile {
 class Contrail extends Projectile {
     constructor(x, y, angle) {
         this.name = 'contrail';
-        super(x, y, angle, 0, 2, 1000);
+        super(x, y, angle, 0, 2, 6000);
         this.count = 1;
     }
 
