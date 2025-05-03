@@ -205,8 +205,8 @@ class Asteroid {
         this.velocityX = (Math.random() * 6 - 0) * 4;
         this.velocityY = (Math.random() * 6 - 0) * 4;
         this.hue = Math.random() * 20; // + 340
-        this.saturation = Math.random() * 50 + 50;
-        this.lightness = Math.random() * 45 + 20;
+        this.saturation = Math.random() * 30 + 50;
+        this.lightness = Math.random() * 35 + 45; // Increased minimum to 45 and range to give 45-80
         this.mass = Math.PI * this.radius * this.radius;
 
         this.sides = 10;
