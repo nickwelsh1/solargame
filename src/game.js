@@ -24,6 +24,13 @@ let dialogueText = '';
 let rectangleDrawTimer = null; // legacy?
 let score = 0;
 
+const LASER_FIRE_RATE = 1000;  // 1000ms between shots
+const BULLET_FIRE_RATE = 200;  // 200ms between shots
+const MISSILE_FIRE_RATE = 500; // 500ms between shots
+let lastLaserFireTime = 0;
+let lastBulletFireTime = 0;
+let lastMissileFireTime = 0;
+
 const shipSVG2 = `
 <svg xmlns="http://www.w3.org/2000/svg" width="62" height="62"> <polygon points="34,12 26,30 28,32 32,30 30,32 30,32 34,30 34,32 36,32 36,30 38,32 38,32 38,30 42,32 44,32" fill=grey /> </svg>
 `;
@@ -136,6 +143,32 @@ class Ship {
 
     shoot() {
         if (entities.length >= MAX_ENTITIES) return;
+
+        const currentTime = performance.now();
+        let canFire = false;
+
+        switch (currentWeapon) {
+            case 'laser':
+                if (currentTime - lastLaserFireTime >= LASER_FIRE_RATE) {
+                    canFire = true;
+                    lastLaserFireTime = currentTime;
+                }
+                break;
+            case 'machineGun':
+                if (currentTime - lastBulletFireTime >= BULLET_FIRE_RATE) {
+                    canFire = true;
+                    lastBulletFireTime = currentTime;
+                }
+                break;
+            case 'missile':
+                if (currentTime - lastMissileFireTime >= MISSILE_FIRE_RATE) {
+                    canFire = true;
+                    lastMissileFireTime = currentTime;
+                }
+                break;
+        }
+
+        if (!canFire) return;
 
         let projectile;
         switch (currentWeapon) {
