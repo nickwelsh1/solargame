@@ -870,9 +870,10 @@ function isUIButtonClicked(buttonSize) {
 function handlePointerDown(event) {
     isMouseDown = true;
     const rect = canvas.getBoundingClientRect();
-
-    mouseX = event.clientX - rect.left;
-    mouseY = event.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouseX = (event.clientX - rect.left) * scaleX;
+    mouseY = (event.clientY - rect.top) * scaleY;
 
     console.log('pointer down');
 
@@ -930,10 +931,11 @@ function handlePointerDown(event) {
 }
 
 function handlePointerMove(event) {
-    // x and y relative to the canvas rect
     const rect = canvas.getBoundingClientRect();
-    mouseX = event.clientX - rect.left;
-    mouseY = event.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouseX = (event.clientX - rect.left) * scaleX;
+    mouseY = (event.clientY - rect.top) * scaleY;
 
     if (isMouseDown && !GAME_OVER && !isShootingAsteroid && !isUIButtonClicked(actionBtnSize)) {
         ship.setTarget(mouseX, mouseY);
