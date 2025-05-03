@@ -62,13 +62,53 @@ class Ship {
         this.y = world.height / 2;
         this.radius = 20;
         this.angle = 0;
+        this.movementAngle = 0;
         this.speed = 0;
-        this.maxSpeed = 10;
+        this.maxSpeed = 500;
         this.targetX = this.x;
         this.targetY = this.y;
-        this.velocityX = 0;
-        this.velocityY = 0;
-        this.movementAngle = 0; // New property to track movement direction separately
+        this.mass = Math.PI * this.radius * this.radius;
+        // Initialize ship's contrail
+        this.contrail = {
+            points: [],
+            maxPoints: 10,
+            lastUpdateTime: 0,
+            updateInterval: 50,
+
+            addPoint(x, y) {
+                const currentTime = performance.now();
+                if (currentTime - this.lastUpdateTime >= this.updateInterval) {
+                    this.points.push({ x, y });
+                    if (this.points.length > this.maxPoints) {
+                        this.points.shift(); // Remove oldest point
+                    }
+                    this.lastUpdateTime = currentTime;
+                }
+            },
+
+            draw(cameraOffset) {
+                if (this.points.length < 2) return;
+
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(100, 149, 237, 0.3)'; // Cornflower blue with low opacity
+                ctx.lineWidth = 3;
+
+                // Start from the oldest point
+                const firstPoint = this.points[0];
+                ctx.moveTo(firstPoint.x - cameraOffset.x, firstPoint.y - cameraOffset.y);
+
+                // Draw lines to each subsequent point
+                for (let i = 1; i < this.points.length; i++) {
+                    const point = this.points[i];
+                    ctx.lineTo(point.x - cameraOffset.x, point.y - cameraOffset.y);
+                    // Gradually increase opacity for newer points
+                    ctx.strokeStyle = `rgba(100, 149, 237, ${i / this.points.length * 0.5})`;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(point.x - cameraOffset.x, point.y - cameraOffset.y);
+                }
+            }
+        };
     }
 
     setRotation(x, y) {
@@ -116,7 +156,7 @@ class Ship {
             const newPos = calculateNewPosition(
                 this.x,
                 this.y,
-                this.movementAngle, // Use movementAngle for position updates
+                this.movementAngle,
                 this.speed,
                 this.maxSpeed,
                 deltaTime
@@ -124,25 +164,29 @@ class Ship {
             this.x = newPos.x;
             this.y = newPos.y;
 
+            // Add point to contrail when moving
+            if (this.speed > 0.1) { // Only add points when actually moving
+                this.contrail.addPoint(this.x, this.y);
+            }
+
             // Update camera offset
             cameraOffset.x = this.x - camera.width / 2;
             cameraOffset.y = this.y - camera.height / 2;
 
             // keep ship bound to world
-        this.x = Math.max(0, Math.min(this.x, world.width));
-        this.y = Math.max(0, Math.min(this.y, world.height));
+            this.x = Math.max(0, Math.min(this.x, world.width));
+            this.y = Math.max(0, Math.min(this.y, world.height));
         }
     }
 
     draw() {
+        // Draw contrail first
+        this.contrail.draw(cameraOffset);
+
+        // Draw ship
         ctx.save();
         ctx.translate(camera.width / 2, camera.height / 2);
         ctx.rotate(this.angle);
-        // ctx.beginPath();
-        // ctx.moveTo(this.radius, 0);
-        // ctx.lineTo(-this.radius, -this.radius / 2);
-        // ctx.lineTo(-this.radius, this.radius / 2);
-        // ctx.closePath();
         ctx.fillStyle = 'white';
         ctx.fill();
         drawSVGImg(shipImg);
@@ -753,11 +797,139 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
+// Mouse contrail tracking
+const mouseContrail = {
+    points: [],
+    maxPoints: 10,
+    lastUpdateTime: 0,
+    updateInterval: 50, // 50ms between updates
 
+    addPoint(x, y) {
+        const currentTime = performance.now();
+        if (currentTime - this.lastUpdateTime >= this.updateInterval) {
+            this.points.push({ x, y });
+            if (this.points.length > this.maxPoints) {
+                this.points.shift(); // Remove oldest point
+            }
+            this.lastUpdateTime = currentTime;
+        }
+    },
+
+    draw() {
+        if (this.points.length < 2) return;
+
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+
+        // Start from the oldest point
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+
+        // Draw lines to each subsequent point
+        for (let i = 1; i < this.points.length; i++) {
+            ctx.lineTo(this.points[i].x, this.points[i].y);
+            // Gradually increase opacity for newer points
+            ctx.strokeStyle = `rgba(255, 255, 255, ${i / this.points.length * 0.5})`;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(this.points[i].x, this.points[i].y);
+        }
+    }
+};
+
+function handlePointerDown(event) {
+    isMouseDown = true;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouseX = (event.clientX - rect.left) * scaleX;
+    mouseY = (event.clientY - rect.top) * scaleY;
+
+    // Add point to contrail
+    mouseContrail.addPoint(mouseX, mouseY);
+
+    console.log('pointer down');
+
+    if (GAME_OVER && isUIButtonClicked(resetBtnSize)) { // if GameOver & reset btn clicked
+        // reset game
+        console.log('RESET Game');
+        console.log('GOOD isUIButtonClicked...', isUIButtonClicked(resetBtnSize));
+        GAME_OVER = false;
+        dialogueText = ''; // Clear the dialogue text
+        initGame(); // This does not reset all of the game, such as Asteroids and Dust
+        // Clear all entities and respawn asteroids
+        asteroids = [];
+        projectiles = [];
+        entities = [];
+        spawnInitialAsteroids();
+    }
+
+    if (!GAME_OVER && isUIButtonClicked(actionBtnSize)) {
+        // do stuff like shoot or change weapons
+        switch (currentWeapon) {
+            case 'laser':
+                currentWeapon = 'machineGun';
+                // weaponButton.textContent = '🔫';
+                break;
+            case 'machineGun':
+                currentWeapon = 'missile';
+                // weaponButton.textContent = '🚀';
+                break;
+            case 'missile':
+                currentWeapon = 'laser';
+                // weaponButton.textContent = '🔦';
+                break;
+        }
+        ship.shoot();
+
+
+    };
+
+    const asteroidClicked = asteroids.some(asteroid => {
+        const screenX = asteroid.x - cameraOffset.x;
+        const screenY = asteroid.y - cameraOffset.y;
+        const distance = Math.hypot(mouseX - screenX, mouseY - screenY);
+        return distance <= asteroid.radius;
+    });
+
+    if (!GAME_OVER && asteroidClicked) {
+        isShootingAsteroid = true;
+        ship.setRotation(mouseX, mouseY);
+        ship.shoot();
+    }
+
+    if (!GAME_OVER && !asteroidClicked && !isUIButtonClicked(actionBtnSize)) {
+        ship.setTarget(mouseX, mouseY);
+    }
+}
+
+function handlePointerMove(event) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouseX = (event.clientX - rect.left) * scaleX;
+    mouseY = (event.clientY - rect.top) * scaleY;
+
+    // Add point to contrail
+    mouseContrail.addPoint(mouseX, mouseY);
+
+    if (isMouseDown && !GAME_OVER && !isShootingAsteroid && !isUIButtonClicked(actionBtnSize)) {
+        ship.setTarget(mouseX, mouseY);
+    }
+}
+
+function handlePointerUp() {
+    isMouseDown = false;
+    isShootingAsteroid = false;
+    console.log('pointer up');
+}
 
 function drawCursorDot(isOverAsteroid) {
+    // Draw contrail first
+    mouseContrail.draw();
+
+    // Then draw the cursor dot
     ctx.beginPath();
-    // ctx.arc(mouseX, mouseY, 3, 0, Math.PI * 2);
     ctx.rect(mouseX - 3, mouseY - 3, 6, 6);
     ctx.fillStyle = isOverAsteroid ? 'yellow' : 'white';
     ctx.fill();
@@ -865,87 +1037,6 @@ function isUIButtonClicked(buttonSize) {
 
     // console.log(`x${mouseX} y${mouseY} px${buttonSize.buttonPosX} py${buttonSize.buttonPosY} bw${buttonSize.buttonWidth} bh${buttonSize.buttonHeight}`);
     return (isInBounds);
-}
-
-function handlePointerDown(event) {
-    isMouseDown = true;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    mouseX = (event.clientX - rect.left) * scaleX;
-    mouseY = (event.clientY - rect.top) * scaleY;
-
-    console.log('pointer down');
-
-    if (GAME_OVER && isUIButtonClicked(resetBtnSize)) { // if GameOver & reset btn clicked
-        // reset game
-        console.log('RESET Game');
-        console.log('GOOD isUIButtonClicked...', isUIButtonClicked(resetBtnSize));
-        GAME_OVER = false;
-        dialogueText = ''; // Clear the dialogue text
-        initGame(); // This does not reset all of the game, such as Asteroids and Dust
-        // Clear all entities and respawn asteroids
-        asteroids = [];
-        projectiles = [];
-        entities = [];
-        spawnInitialAsteroids();
-    }
-
-    if (!GAME_OVER && isUIButtonClicked(actionBtnSize)) {
-        // do stuff like shoot or change weapons
-        switch (currentWeapon) {
-            case 'laser':
-                currentWeapon = 'machineGun';
-                // weaponButton.textContent = '🔫';
-                break;
-            case 'machineGun':
-                currentWeapon = 'missile';
-                // weaponButton.textContent = '🚀';
-                break;
-            case 'missile':
-                currentWeapon = 'laser';
-                // weaponButton.textContent = '🔦';
-                break;
-        }
-        ship.shoot();
-
-
-    };
-
-    const asteroidClicked = asteroids.some(asteroid => {
-        const screenX = asteroid.x - cameraOffset.x;
-        const screenY = asteroid.y - cameraOffset.y;
-        const distance = Math.hypot(mouseX - screenX, mouseY - screenY);
-        return distance <= asteroid.radius;
-    });
-
-    if (!GAME_OVER && asteroidClicked) {
-        isShootingAsteroid = true;
-        ship.setRotation(mouseX, mouseY);
-        ship.shoot();
-    }
-
-    if (!GAME_OVER && !asteroidClicked && !isUIButtonClicked(actionBtnSize)) {
-        ship.setTarget(mouseX, mouseY);
-    }
-}
-
-function handlePointerMove(event) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    mouseX = (event.clientX - rect.left) * scaleX;
-    mouseY = (event.clientY - rect.top) * scaleY;
-
-    if (isMouseDown && !GAME_OVER && !isShootingAsteroid && !isUIButtonClicked(actionBtnSize)) {
-        ship.setTarget(mouseX, mouseY);
-    }
-}
-
-function handlePointerUp() {
-    isMouseDown = false;
-    isShootingAsteroid = false;
-    console.log('pointer up');
 }
 
 canvas.addEventListener('mousedown', handlePointerDown);
