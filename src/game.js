@@ -898,19 +898,19 @@ canvas.addEventListener('touchend', (e) => {
     handlePointerUp();
 });
 
-//TODO: -fix restart button
-//         -fix game re-init of asteroids
+//TODO: -ship thruster effect
+//        -ship contrails effect at speed
+// 
+//TODO:    -fix game re-init of asteroids
 //         -fix re-init of dust
 //         -fix re-init of UI elements
-//TODO: .-collision detection
-//         ship crash
-//         asteroid collision & bounce
-//         and effects
+//TODO:    -Animation: ship explosion
+//         -Physics: asteroid collision & bounce
+//         -Animation: and effects
 //TODO: -entities that reach edge of world should instead wrap around to other side of world
 //TODO: .-camera should not be bound to world, and should also be able to wrap around as ship approaches/crosses world boundary
 //TODO: .-basic dialogue/modal (text, delay)
-//TODO: -ship thruster effect
-//        -ship contrails effect at speed
+// 
 //TODO: shoot key for desktops
 //        -shoot button for gamepads
 //        -controls for gamepads
