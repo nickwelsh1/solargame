@@ -198,15 +198,17 @@ class Ship {
 
 class Asteroid {
     constructor(x, y, radius) {
+
         this.name = 'asteroid';
-        this.x = x || Math.random() * world.width;
-        this.y = y || Math.random() * world.height;
-        this.radius = radius || Math.random() * 30 + 10;
-        this.velocityX = (Math.random() * 6 - 0) * 4;
-        this.velocityY = (Math.random() * 6 - 0) * 4;
-        this.hue = Math.random() * 20; // + 340
-        this.saturation = Math.random() * 30 + 50;
-        this.lightness = Math.random() * 35 + 45; // Increased minimum to 45 and range to give 45-80
+        this.x = x || randomMinMax(10, world.width - 100);
+        this.y = y || randomMinMax(10, world.height - 100);
+        this.radius = radius || randomMinMax(20, 50);
+        this.velocityX = (randomMinMax(20, 40)) * 4;
+        this.velocityY = (randomMinMax(20, 40)) * 4;
+        // color in HSL (degrees, percentage, percentage)
+        this.hue = randomMinMax(10, 30); // + 340
+        this.saturation = randomMinMax(50, 100);
+        this.lightness = randomMinMax(30, 40); // Increased minimum to 45 and range to give 45-80
         this.mass = Math.PI * this.radius * this.radius;
 
         this.sides = 10;
@@ -217,6 +219,10 @@ class Asteroid {
             const angle = i * this.angleIncrement + Math.random() * 0.4 - 0.2;
             const r = this.radius * (1 + Math.random() * 0.3 - 0.15);
             this.vertices.push({ x: r * Math.cos(angle), y: r * Math.sin(angle) });
+        }
+
+        function randomMinMax(min = 0, max) {
+            return Math.random() * (max - min) + min;
         }
     }
 
