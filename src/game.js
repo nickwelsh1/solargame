@@ -13,7 +13,7 @@ const MAX_ENTITIES = 200;
 const PARTICLE_COUNT = 200;
 const MIN_ASTEROID_SIZE = 10;
 const INITIAL_ASTEROID_COUNT = 20;
-const MINIMAP_SCALE = 0.08; // 8% of the canvas size
+const MINIMAP_SCALE = 0.05; // 8% of the canvas size
 const MINIMAP_MARGIN = 10; // Margin from the top-left corner
 let GAME_OVER = false;
 let isMouseDown = false;
@@ -48,8 +48,8 @@ function resizeCanvas() {
     camera.right = camera.left + camera.width;
     camera.centerX = camera.width * 0.5 + camera.top;
     camera.centerY = camera.height * 0.5 + camera.left;
-    world.width = 4 * camera.width;
-    world.height = 4 * camera.height;
+    world.width = 4000; // 4 * camera.width;
+    world.height = 3000; // 4 * camera.height;
 }
 
 window.addEventListener('resize', resizeCanvas);
@@ -596,8 +596,8 @@ function drawWorldBorder() {
 //////
 function drawMiniMap() {
     const minimapSize = {
-        width: camera.width * MINIMAP_SCALE,
-        height: camera.height * MINIMAP_SCALE
+        width: world.width * MINIMAP_SCALE,
+        height: world.height * MINIMAP_SCALE
     };
 
     // message.innerText = `| map ${MINIMAP_MARGIN}`;
