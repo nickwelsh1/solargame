@@ -318,9 +318,24 @@ class Bullet extends Projectile {
 
 class Missile extends Projectile {
     constructor(x, y, angle) {
-
-        super(x, y, angle, 200, 5, 6000);
+        super(x, y, angle, 10, 5, 6000); // Start with initial speed of 10
         this.name = 'missile';
+        this.initialSpeed = 100;
+        this.maxSpeed = 1000;
+        this.timeSinceLaunch = 0;
+    }
+
+    update(deltaTime) {
+        this.timeSinceLaunch += deltaTime;
+        // Calculate how many 50ms intervals have passed
+        const intervals = Math.floor(this.timeSinceLaunch / 50);
+        // Speed doubles every interval, but is capped at maxSpeed
+        this.speed = Math.min(this.initialSpeed * Math.pow(1.1, intervals), this.maxSpeed);
+        
+        // Use the parent class's movement logic with our updated speed
+        this.x += Math.cos(this.angle) * this.speed * deltaTime / 1000;
+        this.y += Math.sin(this.angle) * this.speed * deltaTime / 1000;
+        this.lifespan -= deltaTime;
     }
 
     draw() {
