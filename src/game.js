@@ -68,45 +68,17 @@ class Ship {
         this.targetY = this.y;
         this.velocityX = 0;
         this.velocityY = 0;
+        this.movementAngle = 0; // New property to track movement direction separately
     }
 
-    draw() {
-        ctx.save();
-        ctx.translate(camera.width / 2, camera.height / 2);
-        ctx.rotate(this.angle);
-        // ctx.beginPath();
-        // ctx.moveTo(this.radius, 0);
-        // ctx.lineTo(-this.radius, -this.radius / 2);
-        // ctx.lineTo(-this.radius, this.radius / 2);
-        // ctx.closePath();
-        ctx.fillStyle = 'white';
-        ctx.fill();
-        drawSVGImg(shipImg);
-        ctx.restore();
-    }
-
-    update(deltaTime) {
-        // console.log('ship update');
-
-        // console.log(`values:, x${this.x}, y${this.y}, ang${this.angle}, spd${this.speed}, delT${deltaTime}`);
-        let { x, y } = calculateNewPosition(this.x, this.y, this.angle, this.speed, this.maxSpeed, deltaTime);
-        // console.log('newX and Y:', x, y);
-
-        this.x = x;
-        this.y = y;
-
-        // Update camera offset
-        cameraOffset.x = this.x - camera.width / 2;
-        cameraOffset.y = this.y - camera.height / 2;
-
-        // keep ship bound to world
-        this.x = Math.max(0, Math.min(this.x, world.width));
-        this.y = Math.max(0, Math.min(this.y, world.height));
+    setRotation(x, y) {
+        // Only changes the ship's facing angle without affecting movement
+        const dx = x + cameraOffset.x - this.x;
+        const dy = y + cameraOffset.y - this.y;
+        this.angle = Math.atan2(dy, dx);
     }
 
     setTarget(x, y) {
-        // console.log('ship setTarget');
-
         this.targetX = x + cameraOffset.x;
         this.targetY = y + cameraOffset.y;
         const distance = Math.hypot(this.targetX - this.x, this.targetY - this.y);
@@ -135,10 +107,46 @@ class Ship {
 
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
-        const angleRadians = Math.atan2(dy, dx);
-        this.angle = angleRadians;
-        // convert angle radians to degrees
-        // this.angle = angleRadians * (180 / Math.PI);
+        this.movementAngle = Math.atan2(dy, dx); // Store movement angle separately
+        this.angle = this.movementAngle; // Initially set rotation to match movement
+    }
+
+    update(deltaTime) {
+        if (this.speed > 0) {
+            const newPos = calculateNewPosition(
+                this.x,
+                this.y,
+                this.movementAngle, // Use movementAngle for position updates
+                this.speed,
+                this.maxSpeed,
+                deltaTime
+            );
+            this.x = newPos.x;
+            this.y = newPos.y;
+
+            // Update camera offset
+            cameraOffset.x = this.x - camera.width / 2;
+            cameraOffset.y = this.y - camera.height / 2;
+
+            // keep ship bound to world
+        this.x = Math.max(0, Math.min(this.x, world.width));
+        this.y = Math.max(0, Math.min(this.y, world.height));
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(camera.width / 2, camera.height / 2);
+        ctx.rotate(this.angle);
+        // ctx.beginPath();
+        // ctx.moveTo(this.radius, 0);
+        // ctx.lineTo(-this.radius, -this.radius / 2);
+        // ctx.lineTo(-this.radius, this.radius / 2);
+        // ctx.closePath();
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        drawSVGImg(shipImg);
+        ctx.restore();
     }
 
     shoot() {
@@ -906,6 +914,7 @@ function handlePointerDown(event) {
 
     if (!GAME_OVER && asteroidClicked) {
         isShootingAsteroid = true;
+        ship.setRotation(mouseX, mouseY);
         ship.shoot();
     }
 
