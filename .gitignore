@@ -89,3 +89,6 @@ typings/
 
 # workspace files
 *.code-workspace
+
+# dist files
+dist
