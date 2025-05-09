@@ -18,6 +18,9 @@ let isDraggingFromCenter = false; // For new drag-from-center movement
 const CENTER_CIRCLE_RADIUS = 50;  // Radius of the central UI circle for interaction
 let isMouseDown = false;
 let isShootingAsteroid = false;
+let centerHoldStartTime = 0; // Time when pointer down started in center circle
+let isBraking = false; // Whether ship is currently in braking mode
+let brakeStartTime = 0; // Time when braking started
 let mouseX = 0;
 let mouseY = 0;
 let dialogueText = '';
@@ -159,6 +162,22 @@ class Ship {
     }
 
     update(deltaTime) {
+        // Handle braking if active
+        if (isBraking) {
+            const currentTime = performance.now();
+            const brakeProgress = Math.min(1, (currentTime - brakeStartTime) / 1000);
+            
+            if (brakeProgress >= 1) {
+                // Braking completed
+                this.speed = 0;
+                isBraking = false;
+            } else {
+                // Gradually reduce speed based on brake progress
+                const originalSpeed = this.speed;
+                this.speed = originalSpeed * (1 - brakeProgress);
+            }
+        }
+        
         if (this.speed > 0) {
             const newPos = calculateNewPosition(
                 this.x,
@@ -804,6 +823,17 @@ function gameLoop(timestamp) {
 
     // Draw visual feedback line if dragging from center
     if (isDraggingFromCenter && isMouseDown) { // isMouseDown ensures drag is active
+        // Check if pointer has been held in center for 1000ms (for braking)
+        const currentTime = performance.now();
+        if (centerHoldStartTime > 0 && 
+            currentTime - centerHoldStartTime >= 600 && 
+            !isBraking) {
+            // Start braking if pointer has been held for 1000ms and we're not already braking
+            isBraking = true;
+            brakeStartTime = currentTime;
+            console.log('Brake initiated');
+        }
+        
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(camera.width / 2, camera.height / 2); // Start from center of camera
@@ -812,6 +842,18 @@ function gameLoop(timestamp) {
         ctx.lineWidth = 2;
         ctx.stroke();
         ctx.restore();
+        
+        // Visual feedback for braking
+        if (isBraking) {
+            const brakeProgress = Math.min(1, (currentTime - brakeStartTime) / 1000);
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(camera.width / 2, camera.height / 2, CENTER_CIRCLE_RADIUS * brakeProgress, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200, 200, 200, ${0.3 + (brakeProgress * 0.3)})`;
+            ctx.fill();
+            ctx.restore();
+        }
+
     }
 
     dialogue.update(deltaTime);
@@ -897,8 +939,10 @@ function handlePointerDown(event) {
 
     if (distToCenter <= CENTER_CIRCLE_RADIUS) {
         isDraggingFromCenter = true;
+        centerHoldStartTime = performance.now(); // Record the time when center hold started
     } else {
         isDraggingFromCenter = false; // Click is outside the center circle
+        centerHoldStartTime = 0; // Reset center hold time
     }
 
     // Add point to contrail
@@ -981,10 +1025,14 @@ function handlePointerMove(event) {
 
 function handlePointerUp() {
     if (isDraggingFromCenter) {
-        ship.setTarget(mouseX, mouseY); // Use current mouseX, mouseY (screen coords) as target
+        // Only set new target if we're not in braking mode
+        if (!isBraking) {
+            ship.setTarget(mouseX, mouseY); // Use current mouseX, mouseY (screen coords) as target
+        }
         isDraggingFromCenter = false; // Reset the flag
     }
     isMouseDown = false;
+    centerHoldStartTime = 0; // Reset center hold time when pointer is released
     console.log('pointer up');
 }
 
