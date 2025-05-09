@@ -79,17 +79,16 @@ class Ship {
         // Initialize ship's contrail
         this.contrail = {
             points: [],
-            maxPoints: 10,
             lastUpdateTime: 0,
             updateInterval: 50,
+            pointLifespan: 400, // 100ms lifespan for each point
 
             addPoint(x, y) {
                 const currentTime = performance.now();
                 if (currentTime - this.lastUpdateTime >= this.updateInterval) {
-                    this.points.push({ x, y });
-                    if (this.points.length > this.maxPoints) {
-                        this.points.shift(); // Remove oldest point
-                    }
+                    this.points.push({ x, y, timestamp: currentTime });
+                    // Filter out points that exceed lifespan
+                    this.points = this.points.filter(point => currentTime - point.timestamp <= this.pointLifespan);
                     this.lastUpdateTime = currentTime;
                 }
             },
@@ -847,17 +846,16 @@ function gameLoop(timestamp) {
 // Mouse contrail tracking
 const mouseContrail = {
     points: [],
-    maxPoints: 10,
     lastUpdateTime: 0,
-    updateInterval: 50, // 50ms between updates
+    updateInterval: 30, // 50ms between updates
+    pointLifespan: 100, // 100ms lifespan for each point
 
     addPoint(x, y) {
         const currentTime = performance.now();
         if (currentTime - this.lastUpdateTime >= this.updateInterval) {
-            this.points.push({ x, y });
-            if (this.points.length > this.maxPoints) {
-                this.points.shift(); // Remove oldest point
-            }
+            this.points.push({ x, y, timestamp: currentTime });
+            // Filter out points that exceed lifespan
+            this.points = this.points.filter(point => currentTime - point.timestamp <= this.pointLifespan);
             this.lastUpdateTime = currentTime;
         }
     },
