@@ -13,8 +13,6 @@ const MAX_ENTITIES = 200;
 const PARTICLE_COUNT = 200;
 const MIN_ASTEROID_SIZE = 10;
 const INITIAL_ASTEROID_COUNT = 20;
-const MINIMAP_SCALE = 0.05; // 8% of the canvas size
-const MINIMAP_MARGIN = 10; // Margin from the top-left corner
 let GAME_OVER = false;
 let isMouseDown = false;
 let isShootingAsteroid = false;
@@ -54,6 +52,9 @@ function resizeCanvas() {
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+const MINIMAP_SCALE = camera.width / 5; // 8% of the canvas size
+const MINIMAP_MARGIN = 10; // Margin from the top-left corner
 
 class Ship {
     constructor() {
@@ -639,9 +640,10 @@ function drawWorldBorder() {
 
 //////
 function drawMiniMap() {
+    
     const minimapSize = {
-        width: world.width * MINIMAP_SCALE,
-        height: world.height * MINIMAP_SCALE
+        width: MINIMAP_SCALE,
+        height: world.height / world.width * MINIMAP_SCALE
     };
 
     // message.innerText = `| map ${MINIMAP_MARGIN}`;
@@ -654,7 +656,7 @@ function drawMiniMap() {
     ctx.fillRect(MINIMAP_MARGIN, MINIMAP_MARGIN, minimapSize.width, minimapSize.height);
 
     // Draw mini world border
-    ctx.strokeStyle = 'hsl(220, 60%, 30%)';
+    ctx.strokeStyle = 'hsl(221, 12.20%, 45.10%)';
     ctx.strokeRect(MINIMAP_MARGIN, MINIMAP_MARGIN, minimapSize.width, minimapSize.height);
     ctx.fill();
 
