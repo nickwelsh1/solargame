@@ -828,7 +828,7 @@ function gameLoop(timestamp) {
         if (centerHoldStartTime > 0 && 
             currentTime - centerHoldStartTime >= 600 && 
             !isBraking) {
-            // Start braking if pointer has been held for 1000ms and we're not already braking
+            // Start braking if pointer has been held for 600ms and we're not already braking
             isBraking = true;
             brakeStartTime = currentTime;
             console.log('Brake initiated');
