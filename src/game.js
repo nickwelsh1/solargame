@@ -392,7 +392,7 @@ class Laser extends Projectile {
 
 class Bullet extends Projectile {
     constructor(x, y, angle) {
-        super(x, y, angle, 600, 3, 6000);
+        super(x, y, angle, 1000, 3, 6000);
         this.name = 'bullet';
     }
 }
@@ -932,7 +932,6 @@ function handlePointerDown(event) {
         }
         ship.shoot();
 
-
     };
 
     const asteroidClicked = asteroids.some(asteroid => {
@@ -942,9 +941,10 @@ function handlePointerDown(event) {
         return distance <= asteroid.radius;
     });
 
-    if (!GAME_OVER && asteroidClicked) {
-        isShootingAsteroid = true;
-        ship.setRotation(mouseX, mouseY);
+    if (!GAME_OVER) {
+        // && asteroidClicked
+        // isShootingAsteroid = true;
+        ship.setRotation(mouseX, mouseY);  // Rotate ship to face mouse position before shooting
         ship.shoot();
     }
 
