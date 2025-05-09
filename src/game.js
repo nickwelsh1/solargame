@@ -188,8 +188,9 @@ class Ship {
         ctx.save();
         ctx.translate(camera.width / 2, camera.height / 2);
         ctx.rotate(this.angle);
-        ctx.fillStyle = 'white';
-        ctx.fill();
+        // ctx.fillStyle = 'white';
+        // ctx.fill();
+        ctx.translate(-8, 0);
         drawSVGImg(shipImg);
         ctx.restore();
     }
