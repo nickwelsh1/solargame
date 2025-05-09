@@ -255,6 +255,10 @@ class Asteroid {
         this.saturation = randomMinMax(50, 100);
         this.lightness = randomMinMax(30, 40); // Increased minimum to 45 and range to give 45-80
         this.mass = Math.PI * this.radius * this.radius;
+        
+        // Add rotation properties
+        this.rotationAngle = Math.random() * Math.PI * 2; // Random initial rotation
+        this.rotationSpeed = randomMinMax(2, 20) * Math.PI / 180; // Random spin
 
         this.sides = 10;
         this.angleIncrement = Math.PI * 2 / this.sides;
@@ -272,17 +276,23 @@ class Asteroid {
     }
 
     draw() {
+        ctx.save(); // Save the current context state
+        ctx.translate(this.x - cameraOffset.x, this.y - cameraOffset.y); // Translate to asteroid position
+        ctx.rotate(this.rotationAngle); // Apply rotation
+        
         ctx.beginPath();
-        // ctx.arc(this.x - cameraOffset.x, this.y - cameraOffset.y, this.radius, 0, Math.PI * 2);
-        ctx.moveTo(this.x - cameraOffset.x + this.vertices[0].x, this.y - cameraOffset.y + this.vertices[0].y);
+        // Start at the first vertex (now relative to 0,0 since we've translated)
+        ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
 
         for (let i = 1; i < this.sides; i++) {
-            ctx.lineTo(this.x - cameraOffset.x + this.vertices[i].x, this.y - cameraOffset.y + this.vertices[i].y);
+            ctx.lineTo(this.vertices[i].x, this.vertices[i].y);
         }
 
         ctx.closePath();
         ctx.fillStyle = `hsl(${this.hue}, ${this.saturation}%, ${this.lightness}%)`;
         ctx.fill();
+        
+        ctx.restore(); // Restore the context state
     }
 
     update(deltaTime) {
@@ -293,6 +303,16 @@ class Asteroid {
         // update asteroid position relative to world?
         this.x -= (this.velocityX * deltaTime / 1000); //  - ship.velocityX
         this.y -= (this.velocityY * deltaTime / 1000); //  - ship.velocityY
+
+        // Update rotation angle based on rotation speed and deltaTime
+        this.rotationAngle += this.rotationSpeed * deltaTime / 1000;
+        
+        // Keep rotation angle between 0 and 2*PI
+        if (this.rotationAngle > Math.PI * 2) {
+            this.rotationAngle -= Math.PI * 2;
+        } else if (this.rotationAngle < 0) {
+            this.rotationAngle += Math.PI * 2;
+        }
 
         if (this.x < 0 || this.x > world.width) this.velocityX *= -1;
         if (this.y < 0 || this.y > world.height) this.velocityY *= -1;
