@@ -41,6 +41,11 @@ const shipSVG3 = `
 
 const shipImg = loadSVGString(shipSVG3);
 
+
+function randomMinMax(min = 0, max) {
+    return Math.random() * (max - min) + min;
+}
+
 function resizeCanvas() {
     camera.width = canvas.width = window.innerWidth - 8;
     camera.height = canvas.height = window.innerHeight - 60;
@@ -273,9 +278,7 @@ class Asteroid {
             this.vertices.push({ x: r * Math.cos(angle), y: r * Math.sin(angle) });
         }
 
-        function randomMinMax(min = 0, max) {
-            return Math.random() * (max - min) + min;
-        }
+        
     }
 
     draw() {
@@ -329,11 +332,16 @@ class Asteroid {
 
         const newRadius = this.radius * 0.5;
 
-
-        // Add new asteroids        const newRadius = this.radius * 0.6;
+        // Add new asteroids
         const newAsteroid1 = new Asteroid(this.x, this.y, newRadius);
         const newAsteroid2 = new Asteroid(this.x, this.y, newRadius);
-
+        
+        // Increase rotation speed of the new asteroids (1.5-2.5 times faster)
+        const speedMultiplier1 = randomMinMax(2, 5);
+        
+        newAsteroid1.rotationSpeed = this.rotationSpeed * speedMultiplier1;
+        newAsteroid2.rotationSpeed = this.rotationSpeed * speedMultiplier1;
+        
         // Add new asteroids directly to the arrays
         asteroids.push(newAsteroid1, newAsteroid2);
         entities.push(newAsteroid1, newAsteroid2);
