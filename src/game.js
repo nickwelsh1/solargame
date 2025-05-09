@@ -14,6 +14,8 @@ const PARTICLE_COUNT = 200;
 const MIN_ASTEROID_SIZE = 10;
 const INITIAL_ASTEROID_COUNT = 20;
 let GAME_OVER = false;
+let isDraggingFromCenter = false; // For new drag-from-center movement
+const CENTER_CIRCLE_RADIUS = 50;  // Radius of the central UI circle for interaction
 let isMouseDown = false;
 let isShootingAsteroid = false;
 let mouseX = 0;
@@ -792,6 +794,19 @@ function gameLoop(timestamp) {
     drawMiniMap();
     drawButton(actionBtnSize); // comment
     drawCenterCircle(); // Draw white circle at center of camera
+
+    // Draw visual feedback line if dragging from center
+    if (isDraggingFromCenter && isMouseDown) { // isMouseDown ensures drag is active
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(camera.width / 2, camera.height / 2); // Start from center of camera
+        ctx.lineTo(mouseX, mouseY); // End at current mouse position
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+    }
+
     dialogue.update(deltaTime);
     dialogue.draw();
 
@@ -869,6 +884,17 @@ function handlePointerDown(event) {
     mouseX = (event.clientX - rect.left) * scaleX;
     mouseY = (event.clientY - rect.top) * scaleY;
 
+    // Check if pointer down is within the center circle
+    const centerCircleX = camera.width / 2;
+    const centerCircleY = camera.height / 2;
+    const distToCenter = Math.hypot(mouseX - centerCircleX, mouseY - centerCircleY);
+
+    if (distToCenter <= CENTER_CIRCLE_RADIUS) {
+        isDraggingFromCenter = true;
+    } else {
+        isDraggingFromCenter = false; // Click is outside the center circle
+    }
+
     // Add point to contrail
     mouseContrail.addPoint(mouseX, mouseY);
 
@@ -923,7 +949,8 @@ function handlePointerDown(event) {
     }
 
     if (!GAME_OVER && !asteroidClicked && !isUIButtonClicked(actionBtnSize)) {
-        ship.setTarget(mouseX, mouseY);
+        // REMOVED: This block is removed to disable click-anywhere-to-move
+        // ship.setTarget(mouseX, mouseY); // screen coords
     }
 }
 
@@ -937,14 +964,21 @@ function handlePointerMove(event) {
     // Add point to contrail
     mouseContrail.addPoint(mouseX, mouseY);
 
-    if (isMouseDown && !GAME_OVER && !isShootingAsteroid && !isUIButtonClicked(actionBtnSize)) {
-        ship.setTarget(mouseX, mouseY);
-    }
+    // REMOVED: This block is removed to disable drag-anywhere-to-move
+    // if (isMouseDown && !GAME_OVER && !isShootingAsteroid && !isUIButtonClicked(actionBtnSize)) {
+    //     if (!isDraggingFromCenter) {
+    //         ship.setTarget(mouseX, mouseY); // screen coords
+    //     }
+    //     // If isDraggingFromCenter is true, target is set on pointerUp. Visual feedback is drawn in gameLoop.
+    // }
 }
 
 function handlePointerUp() {
+    if (isDraggingFromCenter) {
+        ship.setTarget(mouseX, mouseY); // Use current mouseX, mouseY (screen coords) as target
+        isDraggingFromCenter = false; // Reset the flag
+    }
     isMouseDown = false;
-    isShootingAsteroid = false;
     console.log('pointer up');
 }
 
@@ -1155,11 +1189,11 @@ function drawSVGImg(img) {
 function drawCenterCircle() {
     const centerX = camera.width / 2;
     const centerY = camera.height / 2;
-    const radius = 50; // Size of the circle
+    // const radius = 50; // Size of the circle - now using global CENTER_CIRCLE_RADIUS
     
     ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, CENTER_CIRCLE_RADIUS, 0, Math.PI * 2);
     // ctx.fillStyle = 'white';
     // ctx.fill();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
