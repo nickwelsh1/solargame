@@ -790,6 +790,7 @@ function gameLoop(timestamp) {
     // Draw the UI elements last, so they appear on top
     drawMiniMap();
     drawButton(actionBtnSize); // comment
+    drawCenterCircle(); // Draw white circle at center of camera
     dialogue.update(deltaTime);
     dialogue.draw();
 
@@ -1077,9 +1078,7 @@ canvas.addEventListener('touchend', (e) => {
     handlePointerUp();
 });
 
-//TODO: -ship thruster effect
-//        -ship contrails effect at speed
-// 
+
 //TODO: shooting fixes
 //        -fix shots start position(s)
 
@@ -1087,9 +1086,11 @@ canvas.addEventListener('touchend', (e) => {
 //TODO:    -fix game re-init of asteroids
 //         -fix re-init of dust
 //         -fix re-init of UI elements
+
 //TODO:    -Animation: ship explosion
 //         -Physics: asteroid collision & bounce
 //         -Animation: and effects
+
 //TODO: -entities that reach edge of world should instead wrap around to other side of world
 //TODO: .-camera should not be bound to world, and should also be able to wrap around as ship approaches/crosses world boundary
 //TODO: .-basic dialogue/modal (text, delay)
@@ -1147,6 +1148,23 @@ function drawSVGImg(img) {
     ctx.scale(4, 4);
     ctx.rotate((-90 * Math.PI) / 180);
     // perhaps timing issue. load svg once. When ready use it?
+}
+
+// Function to draw a white circle at the center of the camera
+function drawCenterCircle() {
+    const centerX = camera.width / 2;
+    const centerY = camera.height / 2;
+    const radius = 50; // Size of the circle
+    
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    // ctx.fillStyle = 'white';
+    // ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
 }
 
 const shipSVG = `
