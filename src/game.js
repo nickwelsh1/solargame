@@ -141,31 +141,57 @@ class Ship {
         const distance = Math.hypot(this.targetX - this.x, this.targetY - this.y);
         const minDistance = Math.min(camera.width, camera.height) * 0.4;
         const speedAdjust = 0.01;
-
+        
+        // Determine the new input speed based on distance
+        let newInputSpeed = 0;
         if (distance > minDistance) {
-            this.speed = 100;
+            newInputSpeed = 100;
             this.maxSpeed = 100;
         } else if (distance > minDistance * 0.8) {
-            this.speed = 50;
+            newInputSpeed = 50;
             this.maxSpeed = 50;
         } else if (distance > minDistance * 0.7) {
-            this.speed = 25;
+            newInputSpeed = 25;
             this.maxSpeed = 25;
         } else if (distance > minDistance * 0.3) {
-            this.speed = 10;
+            newInputSpeed = 10;
             this.maxSpeed = 10;
         } else {
-            this.speed = 0;
+            newInputSpeed = 0;
             this.maxSpeed = 0;
         }
-        if (this.speed > 0) {
-            this.speed *= speedAdjust;
+        if (newInputSpeed > 0) {
+            newInputSpeed *= speedAdjust;
         }
-
+        
+        // Calculate the new direction in degrees
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
-        this.movementAngle = Math.atan2(dy, dx); // Store movement angle separately
-        this.angle = this.movementAngle; // Initially set rotation to match movement
+        const newDirectionRad = Math.atan2(dy, dx);
+        const newDirectionDeg = newDirectionRad * 180 / Math.PI;
+        
+        // Get the current movement direction in degrees
+        const currentDirectionDeg = this.movementAngle * 180 / Math.PI;
+        
+        // Only combine velocities if we already have speed
+        if (this.speed > 0 && newInputSpeed > 0) {
+            // Combine the current velocity with the new velocity
+            const combinedVelocity = addVelocities(
+                this.speed, currentDirectionDeg,
+                newInputSpeed, newDirectionDeg
+            );
+            
+            // Update speed and angle based on the combined velocity
+            this.speed = combinedVelocity.speed;
+            this.movementAngle = combinedVelocity.direction * Math.PI / 180; // Convert back to radians
+        } else {
+            // If currently not moving, just set the new direction and speed
+            this.speed = newInputSpeed;
+            this.movementAngle = newDirectionRad;
+        }
+        
+        // Set rotation to match movement direction
+        this.angle = this.movementAngle;
     }
 
     update(deltaTime) {
