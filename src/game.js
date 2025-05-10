@@ -175,10 +175,14 @@ class Ship {
         
         // Only combine velocities if we already have speed
         if (this.speed > 0 && newInputSpeed > 0) {
+            // Use a momentum factor of 0.8 - adjust this value to control how much momentum is preserved
+            const momentumFactor = 0.8;
+            
             // Combine the current velocity with the new velocity
             const combinedVelocity = addVelocities(
                 this.speed, currentDirectionDeg,
-                newInputSpeed, newDirectionDeg
+                newInputSpeed, newDirectionDeg,
+                momentumFactor // Pass the momentum factor as the multiplier
             );
             
             // Update speed and angle based on the combined velocity
@@ -1346,16 +1350,17 @@ function drawCenterCircle() {
  * @param {number} direction1 The direction of the first velocity vector in degrees.
  * @param {number} speed2 The magnitude of the second velocity vector.
  * @param {number} direction2 The direction of the second velocity vector in degrees.
+ * @param {number} [multiplier=1] Multiplier that controls how much influence the first vector has (higher values give more weight to the first vector)
  * @returns {{speed: number, direction: number}} An object containing the resulting speed and direction in degrees.
  */
-function addVelocities(speed1, direction1, speed2, direction2) {
+function addVelocities(speed1, direction1, speed2, direction2, multiplier = 1) {
     // Convert directions from degrees to radians for trigonometric functions
     const direction1Rad = direction1 * Math.PI / 180;
     const direction2Rad = direction2 * Math.PI / 180;
   
-    // Calculate the x and y components of the first velocity
-    const x1 = speed1 * Math.cos(direction1Rad);
-    const y1 = speed1 * Math.sin(direction1Rad);
+    // Calculate the x and y components of the first velocity (with multiplier)
+    const x1 = speed1 * Math.cos(direction1Rad) * multiplier;
+    const y1 = speed1 * Math.sin(direction1Rad) * multiplier;
   
     // Calculate the x and y components of the second velocity
     const x2 = speed2 * Math.cos(direction2Rad);
