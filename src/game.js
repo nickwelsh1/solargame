@@ -1211,7 +1211,6 @@ let bodyEl = document.querySelector('body');
 const debugEl = document.createElement('pre');
 debugEl.id = 'debug';
 bodyEl.appendChild(debugEl);
-console.log(debugEl);
 
 function debug(text) {
     const codeElement = document.createElement('code');
@@ -1220,20 +1219,31 @@ function debug(text) {
 }
 
 function isMobile() {
+    let mobileChance = 0;
+    
     debug(`screen.orientation: ${screen.orientation.type}`);
     debug(screen.orientation.type);
     debug(navigator.userAgent);
-    debug(navigator.maxTouchPoints);
-    debug(Math.min(window.screen.width, window.screen.height));
-    return (
-        (typeof screen.orientation !== "undefined")
-         || (navigator.userAgent.indexOf('Mobi') > -1)
-         || (Math.min(window.screen.width, window.screen.height) < 768)
-    );
+    debug(`navigator.maxTouchPoints: ${navigator.maxTouchPoints}`);
+    debug(`screen w & h: ${window.screen.width}, ${window.screen.height}`);
+    debug(`min of screen w & h: ${Math.min(window.screen.width, window.screen.height)}`);
+    debug(`window.matchMedia(): ${window.matchMedia("only screen and (max-width: 760px)").matches}`)
+    if (typeof screen.orientation !== "undefined") {
+        mobileChance++;
+    }
+    if (navigator.userAgent.indexOf('Mobi') > -1) {
+        mobileChance++;
+    }
+    if (Math.min(window.screen.width, window.screen.height) < 768) {
+        mobileChance++;
+    }
+    return mobileChance;
 }
 
-if (isMobile()) {
+if (isMobile() > 2) {
     console.log('Mobile device detected');
+    debug('Mobile device detected');
+
 }
 
 function loadSVGString(svgString) {
