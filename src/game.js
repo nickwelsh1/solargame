@@ -1237,10 +1237,10 @@ function isMobile() {
     if (Math.min(window.screen.width, window.screen.height) < 768) {
         mobileChance++;
     }
-    return mobileChance;
+    return mobileChance > 2;
 }
 
-if (isMobile() > 2) {
+if (isMobile()) {
     console.log('Mobile device detected');
     debug('Mobile device detected');
 
