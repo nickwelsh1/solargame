@@ -90,12 +90,17 @@ class Ship {
 
             addPoint(x, y) {
                 const currentTime = performance.now();
+                // this.points.push({ x, y, timestamp: currentTime });
                 if (currentTime - this.lastUpdateTime >= this.updateInterval) {
                     this.points.push({ x, y, timestamp: currentTime });
-                    // Filter out points that exceed lifespan
-                    this.points = this.points.filter(point => currentTime - point.timestamp <= this.pointLifespan);
                     this.lastUpdateTime = currentTime;
                 }
+            },
+
+            update() {
+                const currentTime = performance.now();
+                // Filter out points that exceed lifespan
+                this.points = this.points.filter(point => currentTime - point.timestamp <= this.pointLifespan);
             },
 
             draw(cameraOffset) {
@@ -793,6 +798,10 @@ function gameLoop(timestamp) {
 
     drawWorldBorder();
 
+    // Update contrails to remove expired points
+    ship.contrail.update();
+    mouseContrail.update();
+
     particles.forEach(particle => {
         particle.update(deltaTime);
         particle.draw();
@@ -898,10 +907,14 @@ const mouseContrail = {
         const currentTime = performance.now();
         if (currentTime - this.lastUpdateTime >= this.updateInterval) {
             this.points.push({ x, y, timestamp: currentTime });
-            // Filter out points that exceed lifespan
-            this.points = this.points.filter(point => currentTime - point.timestamp <= this.pointLifespan);
             this.lastUpdateTime = currentTime;
         }
+    },
+
+    update() {
+        const currentTime = performance.now();
+        // Filter out points that exceed lifespan
+        this.points = this.points.filter(point => currentTime - point.timestamp <= this.pointLifespan);
     },
 
     draw() {
