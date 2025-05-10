@@ -1205,7 +1205,36 @@ canvas.addEventListener('touchend', (e) => {
 // broken asteroids
 // working on entities array so we can clear them
 
+const debugLimit = 50;
+let debugCount = 0;
+let bodyEl = document.querySelector('body');
+const debugEl = document.createElement('pre');
+debugEl.id = 'debug';
+bodyEl.appendChild(debugEl);
+console.log(debugEl);
 
+function debug(text) {
+    const codeElement = document.createElement('code');
+    codeElement.textContent = text;
+    debugEl.appendChild(codeElement);
+}
+
+function isMobile() {
+    debug(`screen.orientation: ${screen.orientation.type}`);
+    debug(screen.orientation.type);
+    debug(navigator.userAgent);
+    debug(navigator.maxTouchPoints);
+    debug(Math.min(window.screen.width, window.screen.height));
+    return (
+        (typeof screen.orientation !== "undefined")
+         || (navigator.userAgent.indexOf('Mobi') > -1)
+         || (Math.min(window.screen.width, window.screen.height) < 768)
+    );
+}
+
+if (isMobile()) {
+    console.log('Mobile device detected');
+}
 
 function loadSVGString(svgString) {
     // Get the canvas element
