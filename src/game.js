@@ -9,13 +9,14 @@ const camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, heig
 const cameraOffset = { x: 0, y: 0 };
 let currentWeapon = 'laser';
 let entities = [];
+const MOBILE_SCALE = 0.7;
 const MAX_ENTITIES = 200;
 const PARTICLE_COUNT = 200;
 const MIN_ASTEROID_SIZE = 10;
 const INITIAL_ASTEROID_COUNT = 20;
 let GAME_OVER = false;
 let isDraggingFromCenter = false; // For new drag-from-center movement
-const CENTER_CIRCLE_RADIUS = 50;  // Radius of the central UI circle for interaction
+const CENTER_CIRCLE_RADIUS = 50 * MOBILE_SCALE;  // Radius of the central UI circle for interaction
 let isMouseDown = false;
 let isShootingAsteroid = false;
 let centerHoldStartTime = 0; // Time when pointer down started in center circle
@@ -79,6 +80,7 @@ class Ship {
         this.targetX = this.x;
         this.targetY = this.y;
         this.mass = Math.PI * this.radius * this.radius;
+
         // Initialize ship's contrail
         this.contrail = {
             points: [],
@@ -216,7 +218,7 @@ class Ship {
         // ctx.fillStyle = 'white';
         // ctx.fill();
         ctx.translate(-8, 0);
-        drawSVGImg(shipImg);
+        drawSVGImg(shipImg, MOBILE_SCALE);
         ctx.restore();
     }
 
@@ -273,9 +275,9 @@ class Asteroid {
         this.name = 'asteroid';
         this.x = x || randomMinMax(10, world.width - 100);
         this.y = y || randomMinMax(10, world.height - 100);
-        this.radius = radius || randomMinMax(20, 50);
-        this.velocityX = (randomMinMax(20, 40)) * 4;
-        this.velocityY = (randomMinMax(20, 40)) * 4;
+        this.radius = radius || randomMinMax(30, 45);
+        this.velocityX = (randomMinMax(20, 40)) * 2;
+        this.velocityY = (randomMinMax(20, 40)) * 2;
         // color in HSL (degrees, percentage, percentage)
         this.hue = randomMinMax(10, 30); // + 340
         this.saturation = randomMinMax(50, 100);
@@ -1059,6 +1061,8 @@ function clearEntities() {
 }
 
 function initGame() {
+    score = 0;
+    message.innerText = score;
     dialogue = new Dialogue();
     entities.push(dialogue);
     ship = new Ship();
@@ -1265,11 +1269,11 @@ function loadSVGString(svgString) {
     return img;
 }
 
-function drawSVGImg(img) {
+function drawSVGImg(img, scale = 1) {
     // Draw the image onto the canvas
     // const ctx = canvas.getContext('2d');
     ctx.rotate((90 * Math.PI) / 180);
-    ctx.scale(0.25, 0.25);
+    ctx.scale(0.25 * scale, 0.25 * scale);
     ctx.translate(-154, -206);
     ctx.drawImage(img, 1, 1, 300, 300);
     ctx.translate(154, 206);
