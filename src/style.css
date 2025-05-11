@@ -147,9 +147,11 @@ pre {
 
 code {
   display: block;
+  max-width: calc(100vw - 20px);
   color: yellow;
   background-color: #101113;
   padding: 0 10px;
+  word-wrap: break-word;
 }
 
 .score,

@@ -1270,7 +1270,7 @@ function isMobile() {
     
     debug(`screen.orientation: ${screen.orientation.type}`);
     debug(screen.orientation.type);
-    debug(navigator.userAgent);
+    // debug(navigator.userAgent);
     debug(`navigator.maxTouchPoints: ${navigator.maxTouchPoints}`);
     debug(`screen w & h: ${window.screen.width}, ${window.screen.height}`);
     debug(`min of screen w & h: ${Math.min(window.screen.width, window.screen.height)}`);
