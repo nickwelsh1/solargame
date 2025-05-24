@@ -2,10 +2,13 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const weaponButton = document.getElementById('weaponButton');
 const message = document.querySelector('.message');
+const debugEl = initDebugArea();
 
 let ship, asteroids = [], projectiles = [], particles = [], dialogue;
-const world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
-const camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
+let world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
+let camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
+
+resizeCanvas();
 const cameraOffset = { x: 0, y: 0 };
 let currentWeapon = 'laser';
 let entities = [];
@@ -17,6 +20,9 @@ const INITIAL_ASTEROID_COUNT = 20;
 let GAME_OVER = false;
 let isDraggingFromCenter = false; // For new drag-from-center movement
 const CENTER_CIRCLE_RADIUS = 50 * MOBILE_SCALE;  // Radius of the central UI circle for interaction
+// debug(`cw, ch: ${camera.width}, ${camera.height}`);
+const CENTER_LOWTHRUST_RADIUS = 0.5 * Math.min(camera.width, camera.height) * 0.43;  // Radius of the central UI circle for interaction
+const CENTER_MAXTHRUST_RADIUS = 0.5 * Math.min(camera.width, camera.height) - 8;  // Radius of the central UI circle for interaction
 let isMouseDown = false;
 let isShootingAsteroid = false;
 let centerHoldStartTime = 0; // Time when pointer down started in center circle
@@ -62,7 +68,7 @@ function resizeCanvas() {
 }
 
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+
 
 const MINIMAP_SCALE = camera.width / 5; // 8% of the canvas size
 const MINIMAP_MARGIN = 10; // Margin from the top-left corner
@@ -139,23 +145,17 @@ class Ship {
         this.targetX = x + cameraOffset.x;
         this.targetY = y + cameraOffset.y;
         const distance = Math.hypot(this.targetX - this.x, this.targetY - this.y);
-        const minDistance = Math.min(camera.width, camera.height) * 0.4;
-        const speedAdjust = 0.01;
+        // const maxDistance = 0.5 *Math.min(camera.width, camera.height) - 10;
+        const speedAdjust = 0.005;
         
         // Determine the new input speed based on distance
         let newInputSpeed = 0;
-        if (distance > minDistance) {
+        if (distance > CENTER_LOWTHRUST_RADIUS) {
             newInputSpeed = 100;
             this.maxSpeed = 100;
-        } else if (distance > minDistance * 0.8) {
-            newInputSpeed = 50;
-            this.maxSpeed = 50;
-        } else if (distance > minDistance * 0.7) {
-            newInputSpeed = 25;
-            this.maxSpeed = 25;
-        } else if (distance > minDistance * 0.3) {
-            newInputSpeed = 10;
-            this.maxSpeed = 10;
+        } else if (distance > CENTER_CIRCLE_RADIUS) {
+            newInputSpeed = 60;
+            this.maxSpeed = 60;
         } else {
             newInputSpeed = 0;
             this.maxSpeed = 0;
@@ -860,7 +860,9 @@ function gameLoop(timestamp) {
     // Draw the UI elements last, so they appear on top
     drawMiniMap();
     drawButton(actionBtnSize); // comment
-    drawCenterCircle(); // Draw white circle at center of camera
+    drawCenterCircle(CENTER_CIRCLE_RADIUS); // Draw white circle at center of camera
+    drawCenterCircle(CENTER_LOWTHRUST_RADIUS); // Draw white circle at center of camera
+    drawCenterCircle(CENTER_MAXTHRUST_RADIUS); // Draw white circle at center of camera
 
     // Draw visual feedback line if dragging from center
     if (isDraggingFromCenter && isMouseDown) { // isMouseDown ensures drag is active
@@ -1252,12 +1254,16 @@ canvas.addEventListener('touchend', (e) => {
 // broken asteroids
 // working on entities array so we can clear them
 
-const debugLimit = 50;
-let debugCount = 0;
-let bodyEl = document.querySelector('body');
-const debugEl = document.createElement('pre');
-debugEl.id = 'debug';
-bodyEl.appendChild(debugEl);
+
+function initDebugArea() {
+    const debugLimit = 50;
+    let debugCount = 0;
+    let bodyEl = document.querySelector('body');
+    const debugEl = document.createElement('pre');
+    debugEl.id = 'debug';
+    bodyEl.appendChild(debugEl);
+    return debugEl;
+}
 
 function debug(text) {
     const codeElement = document.createElement('code');
@@ -1269,12 +1275,11 @@ function isMobile() {
     let mobileChance = 0;
     
     debug(`screen.orientation: ${screen.orientation.type}`);
-    debug(screen.orientation.type);
     // debug(navigator.userAgent);
     debug(`navigator.maxTouchPoints: ${navigator.maxTouchPoints}`);
     debug(`screen w & h: ${window.screen.width}, ${window.screen.height}`);
     debug(`min of screen w & h: ${Math.min(window.screen.width, window.screen.height)}`);
-    debug(`window.matchMedia(): ${window.matchMedia("only screen and (max-width: 760px)").matches}`)
+    // debug(`window.matchMedia(): ${window.matchMedia("only screen and (max-width: 760px)").matches}`)
     if (typeof screen.orientation !== "undefined") {
         mobileChance++;
     }
@@ -1284,13 +1289,12 @@ function isMobile() {
     if (Math.min(window.screen.width, window.screen.height) < 768) {
         mobileChance++;
     }
-    return mobileChance > 2;
+    return (mobileChance > 2);
 }
 
 if (isMobile()) {
     console.log('Mobile device detected');
     debug('Mobile device detected');
-
 }
 
 function loadSVGString(svgString) {
@@ -1326,18 +1330,18 @@ function drawSVGImg(img, scale = 1) {
 }
 
 // Function to draw a white circle at the center of the camera
-function drawCenterCircle() {
+function drawCenterCircle(radius) {
     const centerX = camera.width / 2;
     const centerY = camera.height / 2;
     // const radius = 50; // Size of the circle - now using global CENTER_CIRCLE_RADIUS
     
     ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, centerY, CENTER_CIRCLE_RADIUS, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     // ctx.fillStyle = 'white';
     // ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 0.5;
     ctx.stroke();
     ctx.restore();
 }
