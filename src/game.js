@@ -21,8 +21,8 @@ let GAME_OVER = false;
 let isDraggingFromCenter = false; // For new drag-from-center movement
 const CENTER_CIRCLE_RADIUS = 50 * MOBILE_SCALE;  // Radius of the central UI circle for interaction
 // debug(`cw, ch: ${camera.width}, ${camera.height}`);
-const CENTER_LOWTHRUST_RADIUS = 0.5 * Math.min(camera.width, camera.height) * 0.43;  // Radius of the central UI circle for interaction
 const CENTER_MAXTHRUST_RADIUS = 0.5 * Math.min(camera.width, camera.height) - 8;  // Radius of the central UI circle for interaction
+const CENTER_LOWTHRUST_RADIUS = 0.5 * CENTER_MAXTHRUST_RADIUS + (0.5 *CENTER_CIRCLE_RADIUS);  // Radius of the central UI circle for interaction
 let isMouseDown = false;
 let isShootingAsteroid = false;
 let centerHoldStartTime = 0; // Time when pointer down started in center circle
