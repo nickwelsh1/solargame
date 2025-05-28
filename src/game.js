@@ -33,6 +33,7 @@ let mouseY = 0;
 let dialogueText = '';
 let rectangleDrawTimer = null; // legacy?
 let score = 0;
+let timer = {};
 
 const LASER_FIRE_RATE = 1000;  // 1000ms between shots
 const BULLET_FIRE_RATE = 200;  // 200ms between shots
@@ -1107,7 +1108,8 @@ function clearEntities() {
 
 function initGame() {
     score = 0;
-    message.innerText = score;
+    startTimer(5);
+    message.innerText = score + ' timer:' + checkTimer();
     dialogue = new Dialogue();
     entities.push(dialogue);
     ship = new Ship();
@@ -1344,6 +1346,33 @@ function drawCenterCircle(radius) {
     ctx.lineWidth = 0.5;
     ctx.stroke();
     ctx.restore();
+}
+
+function startTimer(durationMins) {
+    timer.startTime = Date.now(); // in milliseconds
+    timer.duration = durationMins * 60 * 1000; // x minutes in ms
+    timer.timerExpired = false;
+}
+
+function checkTimer() {
+  const elapsed = Date.now() - timer.startTime;
+  // Format elapsed time
+  const mins = Math.floor(elapsed / 60000);
+  const secs = Math.floor((elapsed % 60000) / 1000);
+  const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  console.log(`Elapsed: ${formatted}`);
+
+  return formatted;
+}
+
+function isTimerExpired() {
+    // Trigger only once
+  if (!timer.timerExpired && elapsed >= timer.duration) {
+    timer.timerExpired = true;
+    clearInterval(timerInterval);  // TODO: remove timerInterval or manage this better
+    console.log("Timer expired! Perform your action here.");
+    // Your one-time action here
+  }
 }
 
 
