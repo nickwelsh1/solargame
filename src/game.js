@@ -86,11 +86,14 @@ class Ship {
         this.lastRotationTime = 0;
         this.movementAngle = 0;
         this.speed = 0;
+        this.targetSpeed = 0;
         this.maxSpeed = 500;
+        this.lastSpeedUpdateTime = 0;
+        this.accelerationTimeMs = 1000; // Increased time to reach max speed to 200ms
         this.targetX = this.x;
         this.targetY = this.y;
         this.mass = Math.PI * this.radius * this.radius;
-        this.maxRotationSpeed = Math.PI / 180 * 0.25; // 4 degree per ms in radians
+        this.maxRotationSpeed = Math.PI / 180 * 0.25; // 0.25 degree per ms in radians
 
         // Initialize ship's contrail
         this.contrail = {
@@ -185,21 +188,24 @@ class Ship {
         // const maxDistance = 0.5 *Math.min(camera.width, camera.height) - 10;
         const speedAdjust = 0.005;
         
-        // Determine the new input speed based on distance
-        let newInputSpeed = 0;
+        // Determine the new target speed based on distance
+        let baseSpeed = 0;
         if (distance > CENTER_LOWTHRUST_RADIUS) {
-            newInputSpeed = 100;
+            baseSpeed = 100;
             this.maxSpeed = 100;
         } else if (distance > CENTER_CIRCLE_RADIUS) {
-            newInputSpeed = 60;
+            baseSpeed = 60;
             this.maxSpeed = 60;
         } else {
-            newInputSpeed = 0;
+            baseSpeed = 0;
             this.maxSpeed = 0;
         }
-        if (newInputSpeed > 0) {
-            newInputSpeed *= speedAdjust;
-        }
+        
+        // Apply speed adjustment factor (as was done in the original code)
+        this.targetSpeed = baseSpeed > 0 ? baseSpeed * speedAdjust : 0;
+        
+        // Reset speed update timer to start acceleration/deceleration
+        this.lastSpeedUpdateTime = performance.now();
         
         // Calculate the new direction in degrees
         const dx = this.targetX - this.x;
@@ -211,23 +217,22 @@ class Ship {
         const currentDirectionDeg = this.movementAngle * 180 / Math.PI;
         
         // Only combine velocities if we already have speed
-        if (this.speed > 0 && newInputSpeed > 0) {
+        if (this.speed > 0 && this.targetSpeed > 0) {
             // Use a momentum factor of 0.8 - adjust this value to control how much momentum is preserved
             const momentumFactor = 0.8;
             
             // Combine the current velocity with the new velocity
             const combinedVelocity = addVelocities(
                 this.speed, currentDirectionDeg,
-                newInputSpeed, newDirectionDeg,
+                this.targetSpeed, newDirectionDeg,
                 momentumFactor // Pass the momentum factor as the multiplier
             );
             
-            // Update speed and angle based on the combined velocity
-            this.speed = combinedVelocity.speed;
+            // Update movement angle based on the combined velocity
+            // Note: We don't set this.speed here anymore since it's handled by the exponential acceleration
             this.movementAngle = combinedVelocity.direction * Math.PI / 180; // Convert back to radians
         } else {
-            // If currently not moving, just set the new direction and speed
-            this.speed = newInputSpeed;
+            // If currently not moving, just set the new direction
             this.movementAngle = newDirectionRad;
         }
         
@@ -244,14 +249,49 @@ class Ship {
             if (brakeProgress >= 1) {
                 // Braking completed
                 this.speed = 0;
+                this.targetSpeed = 0;
                 isBraking = false;
             } else {
                 // Gradually reduce speed based on brake progress
                 const originalSpeed = this.speed;
                 this.speed = originalSpeed * (1 - brakeProgress);
             }
+        } else {
+            // Handle exponential acceleration/deceleration toward target speed
+            const currentTime = performance.now();
+            const elapsedMs = currentTime - this.lastSpeedUpdateTime;
+            
+            if (this.speed !== this.targetSpeed) {
+                // Calculate progress factor based on acceleration time
+                const progressFactor = Math.min(1, elapsedMs / this.accelerationTimeMs);
+                
+                // Exponential ease-in-out function for smooth acceleration/deceleration
+                const easeInOutExpo = (t) => {
+                    return t === 0 ? 0 : t === 1 ? 1 
+                        : t < 0.5 ? Math.pow(2, 20 * t - 10) / 2
+                        : (2 - Math.pow(2, -20 * t + 10)) / 2;
+                };
+                
+                // Apply the easing function to the progress
+                const easedProgress = easeInOutExpo(progressFactor);
+                
+                // Interpolate between current speed and target speed
+                const speedDiff = this.targetSpeed - this.speed;
+                this.speed += speedDiff * easedProgress;
+                
+                // If we're very close to the target speed, snap to it
+                if (Math.abs(this.speed - this.targetSpeed) < 0.1) {
+                    this.speed = this.targetSpeed;
+                }
+                
+                // Update the last speed update time if we've completed this acceleration
+                if (progressFactor >= 1) {
+                    this.lastSpeedUpdateTime = currentTime;
+                }
+            }
         }
         
+        // Move the ship if it has speed
         if (this.speed > 0) {
             const newPos = calculateNewPosition(
                 this.x,
