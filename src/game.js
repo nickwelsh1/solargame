@@ -82,12 +82,15 @@ class Ship {
         this.y = world.height / 2;
         this.radius = 20;
         this.angle = 0;
+        this.lastAngle = 0;
+        this.lastRotationTime = 0;
         this.movementAngle = 0;
         this.speed = 0;
         this.maxSpeed = 500;
         this.targetX = this.x;
         this.targetY = this.y;
         this.mass = Math.PI * this.radius * this.radius;
+        this.maxRotationSpeed = Math.PI / 180 * 0.25; // 4 degree per ms in radians
 
         // Initialize ship's contrail
         this.contrail = {
@@ -140,7 +143,39 @@ class Ship {
         // Only changes the ship's facing angle without affecting movement
         const dx = x + cameraOffset.x - this.x;
         const dy = y + cameraOffset.y - this.y;
-        this.angle = Math.atan2(dy, dx);
+        const targetAngle = Math.atan2(dy, dx);
+        
+        // Calculate time elapsed since last rotation
+        const currentTime = performance.now();
+        const elapsed = currentTime - this.lastRotationTime;
+        
+        // Calculate maximum angle change allowed (1 degree per ms)
+        const maxChange = this.maxRotationSpeed * elapsed;
+        
+        // Find the shortest angle between current and target
+        let angleDiff = targetAngle - this.angle;
+        
+        // Normalize angle difference to be between -PI and PI
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        
+        // Limit the rotation to the maximum allowed by elapsed time
+        if (Math.abs(angleDiff) > maxChange) {
+            // Clamp to maximum change
+            const direction = angleDiff > 0 ? 1 : -1;
+            this.angle += direction * maxChange;
+            
+            // Ensure angle stays within 0 to 2*PI range
+            if (this.angle > Math.PI * 2) this.angle -= Math.PI * 2;
+            if (this.angle < 0) this.angle += Math.PI * 2;
+        } else {
+            // Can reach target angle within time constraint
+            this.angle = targetAngle;
+        }
+        
+        // Update the last rotation time
+        this.lastRotationTime = currentTime;
+        this.lastAngle = this.angle;
     }
 
     setTarget(x, y) {
