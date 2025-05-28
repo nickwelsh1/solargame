@@ -25,6 +25,7 @@ const CENTER_MAXTHRUST_RADIUS = 0.5 * Math.min(camera.width, camera.height) - 8;
 const CENTER_LOWTHRUST_RADIUS = 0.5 * CENTER_MAXTHRUST_RADIUS + (0.5 *CENTER_CIRCLE_RADIUS);  // Radius of the central UI circle for interaction
 let isMouseDown = false;
 let isShootingAsteroid = false;
+let isShooting = false; // New flag to track if shooting is active
 let centerHoldStartTime = 0; // Time when pointer down started in center circle
 let isBraking = false; // Whether ship is currently in braking mode
 let brakeStartTime = 0; // Time when braking started
@@ -93,7 +94,7 @@ class Ship {
             points: [],
             lastUpdateTime: 0,
             updateInterval: 50,
-            pointLifespan: 400, // 100ms lifespan for each point
+            pointLifespan: 600, // 100ms lifespan for each point
 
             addPoint(x, y) {
                 const currentTime = performance.now();
@@ -706,8 +707,15 @@ function handleCollisions() {
         // Check collision with ship
         const shipDistance = Math.hypot(ship.x - asteroid.x, ship.y - asteroid.y);
         if (shipDistance < asteroid.radius + ship.radius) {
-            // Game over logic can be added here
+            // Game over logic
             GAME_OVER = true;
+            
+            // Stop the timer when game over
+            if (timer.interval) {
+                clearInterval(timer.interval);
+                message.innerText = `${score} | GAME OVER`;
+            }
+            
             clearEntities();
             console.log("Game over!");
             dialogueText = "Game Over!";
@@ -974,13 +982,14 @@ const mouseContrail = {
 
 function handlePointerDown(event) {
     isMouseDown = true;
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
+
     mouseX = (event.clientX - rect.left) * scaleX;
     mouseY = (event.clientY - rect.top) * scaleY;
 
-    // Check if pointer down is within the center circle
     const centerCircleX = camera.width / 2;
     const centerCircleY = camera.height / 2;
     const distToCenter = Math.hypot(mouseX - centerCircleX, mouseY - centerCircleY);
@@ -991,6 +1000,12 @@ function handlePointerDown(event) {
     } else {
         isDraggingFromCenter = false; // Click is outside the center circle
         centerHoldStartTime = 0; // Reset center hold time
+        
+        // Start shooting if pointer is outside center circle
+        if (!GAME_OVER) {
+            isShooting = true;
+            ship.shoot(); // Initial shot when pointer is first pressed down
+        }
     }
 
     // Add point to contrail
@@ -1058,6 +1073,25 @@ function handlePointerMove(event) {
     const scaleY = canvas.height / rect.height;
     mouseX = (event.clientX - rect.left) * scaleX;
     mouseY = (event.clientY - rect.top) * scaleY;
+    
+    // Check if pointer is still within canvas bounds
+    const isWithinCanvas = mouseX >= 0 && mouseX <= canvas.width && mouseY >= 0 && mouseY <= canvas.height;
+    
+    // If shooting is active and mouse is still down and within canvas
+    if (isShooting && isMouseDown && isWithinCanvas && !GAME_OVER) {
+        const centerCircleX = camera.width / 2;
+        const centerCircleY = camera.height / 2;
+        const distToCenter = Math.hypot(mouseX - centerCircleX, mouseY - centerCircleY);
+        
+        // Continue shooting if outside center circle
+        if (distToCenter > CENTER_CIRCLE_RADIUS) {
+            ship.setRotation(mouseX, mouseY);  // Rotate ship to face mouse position before shooting
+            ship.shoot();
+        } else {
+            // If moved back into center circle, stop shooting
+            isShooting = false;
+        }
+    }
 
     // Add point to contrail
     mouseContrail.addPoint(mouseX, mouseY);
@@ -1079,6 +1113,10 @@ function handlePointerUp() {
         }
         isDraggingFromCenter = false; // Reset the flag
     }
+    
+    // Stop shooting when pointer is released
+    isShooting = false;
+    
     isMouseDown = false;
     centerHoldStartTime = 0; // Reset center hold time when pointer is released
     console.log('pointer up');
@@ -1109,7 +1147,7 @@ function clearEntities() {
 function initGame() {
     score = 0;
     startTimer(5);
-    message.innerText = score + ' timer:' + checkTimer();
+    message.innerText = score;
     dialogue = new Dialogue();
     entities.push(dialogue);
     ship = new Ship();
@@ -1352,27 +1390,57 @@ function startTimer(durationMins) {
     timer.startTime = Date.now(); // in milliseconds
     timer.duration = durationMins * 60 * 1000; // x minutes in ms
     timer.timerExpired = false;
+    
+    // Start a timer that updates every second to show score and remaining time
+    if (timer.interval) {
+        clearInterval(timer.interval);
+    }
+    
+    timer.interval = setInterval(() => {
+        if (!isTimerExpired()) {
+            // Update the message with score and timer
+            const timeFormatted = checkTimer();
+            message.innerText = `${score} | Timer: ${timeFormatted}`;
+        }
+    }, 1000); // Update every second
 }
 
 function checkTimer() {
   const elapsed = Date.now() - timer.startTime;
-  // Format elapsed time
-  const mins = Math.floor(elapsed / 60000);
-  const secs = Math.floor((elapsed % 60000) / 1000);
+  const remaining = Math.max(0, timer.duration - elapsed);
+  
+  // Format remaining time
+  const mins = Math.floor(remaining / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
   const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  console.log(`Elapsed: ${formatted}`);
+//   console.log(`Remaining: ${formatted}`);
 
   return formatted;
 }
 
 function isTimerExpired() {
-    // Trigger only once
-  if (!timer.timerExpired && elapsed >= timer.duration) {
-    timer.timerExpired = true;
-    clearInterval(timerInterval);  // TODO: remove timerInterval or manage this better
-    console.log("Timer expired! Perform your action here.");
-    // Your one-time action here
-  }
+    // Always consider timer expired if game is over
+    if (GAME_OVER) {
+        return true;
+    }
+    
+    // Calculate elapsed time
+    const elapsed = Date.now() - timer.startTime;
+    
+    // Check if timer has expired
+    if (!timer.timerExpired && elapsed >= timer.duration) {
+        timer.timerExpired = true;
+        // Clear our interval when the timer expires
+        if (timer.interval) {
+            clearInterval(timer.interval);
+        }
+        console.log("Timer expired! Perform your action here.");
+        // Final update of the message when timer expires
+        message.innerText = `GAME OVER | Final Score: ${score}`;
+        return true;
+    }
+    
+    return false;
 }
 
 
