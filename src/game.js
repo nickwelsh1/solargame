@@ -12,7 +12,7 @@ resizeCanvas();
 const cameraOffset = { x: 0, y: 0 };
 let currentWeapon = 'laser';
 let entities = [];
-const MOBILE_SCALE = 0.55;
+const MOBILE_SCALE = 0.5;
 const MAX_ENTITIES = 200;
 const PARTICLE_COUNT = 200;
 const MIN_ASTEROID_SIZE = 10;
