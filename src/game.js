@@ -1345,7 +1345,7 @@ canvas.addEventListener('touchend', (e) => {
 //         -Animation: and effects
 
 //TODO: -entities that reach edge of world should instead wrap around to other side of world
-//TODO: .-camera should not be bound to world, and should also be able to wrap around as ship approaches/crosses world boundary
+//TODO: .-camera should be able to wrap around as ship approaches/crosses world boundary
 //TODO: .-basic dialogue/modal (text, delay)
 // 
 //TODO: shoot key for desktops
@@ -1353,18 +1353,12 @@ canvas.addEventListener('touchend', (e) => {
 //        -controls for gamepads
 //TODO: -UI buttons [shoot/interact, change weapon, boost?]
 //        should UI buttons be circles (for finger touch)?
-//        -add change weapon button in canvas
 //
 //TODO: FX ship at max speed effect
 //TODO: FX dust should streak at speed
-//TODO: ship should take N ms to accelerate to speed
 //TODO: FX effects when asteroids hit
-//TODO: varied asteroid speeds
 //TODO: x-use SVG
 //        .-use SVG for sprites e.g. ship/shots/effects/asteroid texture
-//TODO: mouse position fixes
-//        .-ship/mouse alignment. center of ship appears about 15px left or mouse.
-//        -draw mouse cursor crosshair in canvas instead of CSS?
 
 // broken asteroids
 // working on entities array so we can clear them
