@@ -113,8 +113,8 @@ class Ship {
                 if (this.points.length < 2) return;
 
                 ctx.beginPath();
-                ctx.strokeStyle = 'rgba(100, 149, 237, 0.3)'; // Cornflower blue with low opacity
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'hsl(200, 100.00%, 100%)'; // 
+                ctx.lineWidth = 5;
 
                 // Start from the oldest point
                 const firstPoint = this.points[0];
@@ -125,7 +125,7 @@ class Ship {
                     const point = this.points[i];
                     ctx.lineTo(point.x - cameraOffset.x, point.y - cameraOffset.y);
                     // Gradually increase opacity for newer points
-                    ctx.strokeStyle = `rgba(100, 149, 237, ${i / this.points.length * 0.5})`;
+                    ctx.strokeStyle = `hsla(200, 100%, ${i * 10}%, ${i / this.points.length * 0.9})`;
                     ctx.stroke();
                     ctx.beginPath();
                     ctx.moveTo(point.x - cameraOffset.x, point.y - cameraOffset.y);
@@ -1345,6 +1345,13 @@ function resizeCanvas() {
 }
 
 //TODO: shooting fixes
+//        -too much shooting and asteroids likely hits entity limit preventing more bullets/shooting
+//        -count / console log number of entities
+//        -tapping in inner circle should not instantly stop ship (perhaps only slow 10%?)
+//        -sort out multi-touch shoot & move at same time
+//        -sort out pointerDown & pointerMove & pointerUpdistinctions and overlap
+//        -continue shooting if pointerDown but no dragging
+
 //        -fix shots start position(s)
 
 //
@@ -1352,7 +1359,7 @@ function resizeCanvas() {
 //         -fix re-init of dust
 //         -fix re-init of UI elements
 
-//TODO:    -Animation: ship explosion
+//TODO:    -Animation: ship explosion, asteroid explosion
 //         -Physics: asteroid collision & bounce
 //         -Animation: and effects
 
