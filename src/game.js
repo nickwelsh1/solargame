@@ -79,7 +79,7 @@ class Ship {
         this.movementAngle = 0;
         this.speed = 0;
         this.targetSpeed = 0;
-        this.maxSpeed = 500;
+        this.maxSpeed = 400;
         this.lastSpeedUpdateTime = 0;
         this.accelerationTimeMs = 1000; // Increased time to reach max speed to 200ms
         this.targetX = this.x;
@@ -183,11 +183,11 @@ class Ship {
         // Determine the new target speed based on distance
         let baseSpeed = 0;
         if (distance > CENTER_LOWTHRUST_RADIUS) {
-            baseSpeed = 100;
-            this.maxSpeed = 100;
+            baseSpeed = 80;
+            this.maxSpeed = 80;
         } else if (distance > CENTER_CIRCLE_RADIUS) {
-            baseSpeed = 60;
-            this.maxSpeed = 60;
+            baseSpeed = 40;
+            this.maxSpeed = 40;
         } else {
             baseSpeed = 0;
             this.maxSpeed = 0;
@@ -380,11 +380,11 @@ class Asteroid {
         this.x = x || randomMinMax(10, world.width - 100);
         this.y = y || randomMinMax(10, world.height - 100);
         this.radius = radius || randomMinMax(30, 45);
-        this.velocityX = (randomMinMax(20, 40)) * 2;
-        this.velocityY = (randomMinMax(20, 40)) * 2;
+        this.velocityX = (randomMinMax(10, 20)) * 2;
+        this.velocityY = (randomMinMax(10, 20)) * 2;
         // color in HSL (degrees, percentage, percentage)
         this.hue = randomMinMax(10, 30); // + 340
-        this.saturation = randomMinMax(50, 100);
+        this.saturation = randomMinMax(50, 90);
         this.lightness = randomMinMax(30, 40); // Increased minimum to 45 and range to give 45-80
         this.mass = Math.PI * this.radius * this.radius;
         
