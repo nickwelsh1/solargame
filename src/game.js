@@ -814,6 +814,7 @@ function drawMiniMap() {
     ctx.save();
 
     // Set up the mini-map area
+    ctx.lineWidth = 1;
     ctx.fillStyle = 'rgba(0, 0, 3, 0.5)';
     ctx.fillRect(MINIMAP_MARGIN, MINIMAP_MARGIN, minimapSize.width, minimapSize.height);
 
@@ -827,31 +828,34 @@ function drawMiniMap() {
 
     // Draw mini asteroids
     asteroids.forEach(asteroid => {
-        ctx.fillStyle = `hsl(${asteroid.hue}, ${asteroid.saturation}%, ${asteroid.lightness}%)`;
-        ctx.beginPath();
-        ctx.arc(
-            MINIMAP_MARGIN + asteroid.x * scaleFactor,
-            MINIMAP_MARGIN + asteroid.y * scaleFactor,
-            asteroid.radius * scaleFactor,
-            0,
-            Math.PI * 2
-        );
+        ctx.fillStyle = `hsl(0, 100%, 59%)`;
+        ctx.fillRect(MINIMAP_MARGIN + asteroid.x * scaleFactor, MINIMAP_MARGIN + asteroid.y * scaleFactor, 2, 2);
+        // ctx.beginPath();
+        // ctx.arc(
+        //     MINIMAP_MARGIN + asteroid.x * scaleFactor,
+        //     MINIMAP_MARGIN + asteroid.y * scaleFactor,
+        //     2,
+        //     0,
+        //     Math.PI * 2
+        // );
         ctx.fill();
     });
 
     // Draw mini ship
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(
-        MINIMAP_MARGIN + ship.x * scaleFactor,
-        MINIMAP_MARGIN + ship.y * scaleFactor,
-        3,
-        0,
-        Math.PI * 2
-    );
+    ctx.fillStyle = 'yellow';
+    ctx.fillRect(MINIMAP_MARGIN + ship.x * scaleFactor, MINIMAP_MARGIN + ship.y * scaleFactor, 2, 2);
+    // ctx.beginPath();
+    // ctx.arc(
+    //     MINIMAP_MARGIN + ship.x * scaleFactor,
+    //     MINIMAP_MARGIN + ship.y * scaleFactor,
+    //     3,
+    //     0,
+    //     Math.PI * 2
+    // );
     ctx.fill();
 
     // Draw mini view area
+    ctx.lineWidth = 1;
     ctx.strokeStyle = 'hsla(170, 60%, 30%, 0.4)';
     ctx.strokeRect(
         MINIMAP_MARGIN + (ship.x - camera.width / 2) * scaleFactor,
