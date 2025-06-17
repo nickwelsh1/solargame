@@ -92,7 +92,7 @@ class Ship {
             points: [],
             lastUpdateTime: 0,
             updateInterval: 50,
-            pointLifespan: 600, // 100ms lifespan for each point
+            pointLifespan: 800, // 100ms lifespan for each point
 
             addPoint(x, y) {
                 const currentTime = performance.now();
