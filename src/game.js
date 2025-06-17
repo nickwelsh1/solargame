@@ -386,7 +386,7 @@ class Asteroid {
         this.hue = randomMinMax(10, 30); // + 340
         this.saturation = randomMinMax(50, 90);
         this.lightness = randomMinMax(30, 40); // Increased minimum to 45 and range to give 45-80
-        this.mass = Math.PI * this.radius * this.radius;
+        this.mass = Math.PI * this.radius * this.radius * 3;
         
         // Add rotation properties
         this.rotationAngle = Math.random() * Math.PI * 2; // Random initial rotation
@@ -985,9 +985,6 @@ function gameLoop(timestamp) {
     dialogue.update(deltaTime);
     dialogue.draw();
 
-    if (isMouseDown && isShootingAsteroid) {
-        ship.shoot();
-    }
 
     // Draw cursor
     const isOverAsteroid = isPointOverAsteroid(mouseX, mouseY);
@@ -1131,7 +1128,6 @@ function handlePointerDown(event) {
         // Rotate ship to face mouse position before shooting
         isShooting = true;
         ship.setRotation(mouseX, mouseY);
-        ship.shoot();
     } 
 
 }
@@ -1156,7 +1152,7 @@ function handlePointerMove(event) {
         // Continue shooting if outside center circle
         if (isOutsideCenterCircle) {
             ship.setRotation(mouseX, mouseY);  // Rotate ship to face mouse position before shooting
-            ship.shoot();
+            // ship.shoot();
         } else {
             // If moved back into center circle, stop shooting
             isShooting = false;
