@@ -917,6 +917,9 @@ function gameLoop(timestamp) {
         particle.draw();
     });
 
+    if (isShooting) {
+        ship.shoot();
+    }
     ship.update(deltaTime);
     ship.draw();
 
@@ -1052,6 +1055,7 @@ const mouseContrail = {
 };
 
 function handlePointerDown(event) {
+    // type of click: mouseDown
     isMouseDown = true;
 
     const rect = canvas.getBoundingClientRect();
@@ -1064,19 +1068,17 @@ function handlePointerDown(event) {
     const centerCircleX = camera.width / 2;
     const centerCircleY = camera.height / 2;
     const distToCenter = Math.hypot(mouseX - centerCircleX, mouseY - centerCircleY);
+    const isInCenterCircle = (distToCenter <= CENTER_CIRCLE_RADIUS);
 
-    if (distToCenter <= CENTER_CIRCLE_RADIUS) {
+    // location of click: center circle
+    if (isInCenterCircle) {
         isDraggingFromCenter = true;
         centerHoldStartTime = performance.now(); // Record the time when center hold started
     } else {
         isDraggingFromCenter = false; // Click is outside the center circle
         centerHoldStartTime = 0; // Reset center hold time
         
-        // Start shooting if pointer is outside center circle
-        if (!GAME_OVER) {
-            isShooting = true;
-            ship.shoot(); // Initial shot when pointer is first pressed down
-        }
+        
     }
 
     // Add point to contrail
@@ -1114,9 +1116,8 @@ function handlePointerDown(event) {
                 // weaponButton.textContent = '🔦';
                 break;
         }
-        ship.shoot();
-
-    };
+        // ship.shoot();
+    }
 
     const asteroidClicked = asteroids.some(asteroid => {
         const screenX = asteroid.x - cameraOffset.x;
@@ -1125,17 +1126,14 @@ function handlePointerDown(event) {
         return distance <= asteroid.radius;
     });
 
-    if (!GAME_OVER) {
-        // && asteroidClicked
-        // isShootingAsteroid = true;
-        ship.setRotation(mouseX, mouseY);  // Rotate ship to face mouse position before shooting
+    // Start shooting if pointer is outside center circle
+    if (!GAME_OVER && !isInCenterCircle && !isUIButtonClicked(actionBtnSize)) {
+        // Rotate ship to face mouse position before shooting
+        isShooting = true;
+        ship.setRotation(mouseX, mouseY);
         ship.shoot();
-    }
+    } 
 
-    if (!GAME_OVER && !asteroidClicked && !isUIButtonClicked(actionBtnSize)) {
-        // REMOVED: This block is removed to disable click-anywhere-to-move
-        // ship.setTarget(mouseX, mouseY); // screen coords
-    }
 }
 
 function handlePointerMove(event) {
@@ -1153,9 +1151,10 @@ function handlePointerMove(event) {
         const centerCircleX = camera.width / 2;
         const centerCircleY = camera.height / 2;
         const distToCenter = Math.hypot(mouseX - centerCircleX, mouseY - centerCircleY);
+        const isOutsideCenterCircle = (distToCenter > CENTER_CIRCLE_RADIUS);
         
         // Continue shooting if outside center circle
-        if (distToCenter > CENTER_CIRCLE_RADIUS) {
+        if (isOutsideCenterCircle) {
             ship.setRotation(mouseX, mouseY);  // Rotate ship to face mouse position before shooting
             ship.shoot();
         } else {
