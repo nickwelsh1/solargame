@@ -943,66 +943,94 @@ function gameLoop(timestamp) {
 
     ctx.clearRect(0, 0, camera.width, camera.height);
 
+    // ===== UPDATE PHASE (skip if paused) =====
+    if (!GAME_PAUSED) {
+        // Update contrails to remove expired points
+        ship.contrail.update();
+        mouseContrail.update();
+
+        // Update particles
+        particles.forEach(particle => {
+            particle.update(deltaTime);
+        });
+
+        // Update ship
+        if (isShooting) {
+            ship.shoot();
+        }
+        ship.update(deltaTime);
+
+        // Update asteroids
+        asteroids.forEach(asteroid => {
+            asteroid.update(deltaTime);
+        });
+
+        // Update projectiles
+        projectiles.forEach((projectile, index) => {
+            projectile.update(deltaTime);
+
+            if (projectile.lifespan <= 0) {
+                projectiles.splice(index, 1);
+                entities.splice(entities.indexOf(projectile), 1);
+            }
+        });
+
+        // Handle collisions
+        handleCollisions();
+
+        // Update dialogue
+        dialogue.update(deltaTime);
+
+        // Handle braking logic (if dragging from center)
+        if (isDraggingFromCenter && isMouseDown) {
+            const currentTime = performance.now();
+            if (centerHoldStartTime > 0 &&
+                currentTime - centerHoldStartTime >= 600 &&
+                !isBraking) {
+                isBraking = true;
+                brakeStartTime = currentTime;
+                console.log('Brake initiated');
+            }
+        }
+    }
+
+    // ===== DRAW PHASE (always runs) =====
     drawWorldBorder();
 
-    // Update contrails to remove expired points
-    ship.contrail.update();
-    mouseContrail.update();
-
+    // Draw particles
     particles.forEach(particle => {
-        particle.update(deltaTime);
         particle.draw();
     });
 
+    // Draw planet
     if (planet) {
         planet.draw();
     }
 
-    if (isShooting) {
-        ship.shoot();
-    }
-    ship.update(deltaTime);
+    // Draw ship
     ship.draw();
 
-
-
+    // Draw asteroids
     asteroids.forEach(asteroid => {
-        asteroid.update(deltaTime);
         asteroid.draw();
     });
 
-    projectiles.forEach((projectile, index) => {
-        projectile.update(deltaTime);
+    // Draw projectiles
+    projectiles.forEach(projectile => {
         projectile.draw();
-
-        if (projectile.lifespan <= 0) {
-            projectiles.splice(index, 1);
-            entities.splice(entities.indexOf(projectile), 1);
-        }
     });
-
-    handleCollisions();
 
     // Draw the UI elements last, so they appear on top
     drawMiniMap();
-    drawButton(actionBtnSize); // comment
-    drawButton(pauseBtnSize); // pause button
-    drawCenterCircle(CENTER_CIRCLE_RADIUS); // Draw white circle at center of camera
-    drawCenterCircle(CENTER_LOWTHRUST_RADIUS); // Draw white circle at center of camera
-    drawCenterCircle(CENTER_MAXTHRUST_RADIUS); // Draw white circle at center of camera
+    drawButton(actionBtnSize);
+    drawButton(pauseBtnSize);
+    drawCenterCircle(CENTER_CIRCLE_RADIUS);
+    drawCenterCircle(CENTER_LOWTHRUST_RADIUS);
+    drawCenterCircle(CENTER_MAXTHRUST_RADIUS);
 
     // Draw visual feedback line if dragging from center
-    if (isDraggingFromCenter && isMouseDown) { // isMouseDown ensures drag is active
-        // Check if pointer has been held in center for 1000ms (for braking)
+    if (isDraggingFromCenter && isMouseDown) {
         const currentTime = performance.now();
-        if (centerHoldStartTime > 0 &&
-            currentTime - centerHoldStartTime >= 600 &&
-            !isBraking) {
-            // Start braking if pointer has been held for 600ms and we're not already braking
-            isBraking = true;
-            brakeStartTime = currentTime;
-            console.log('Brake initiated');
-        }
 
         drawDragFromCenterLine();
 
@@ -1011,18 +1039,15 @@ function gameLoop(timestamp) {
             const brakeProgress = Math.min(1, (currentTime - brakeStartTime) / 1000);
             drawBrakingEffect(brakeProgress);
         }
-
     }
 
-    dialogue.update(deltaTime);
+    // Draw dialogue
     dialogue.draw();
-
 
     // Draw cursor
     const isOverAsteroid = isPointOverAsteroid(mouseX, mouseY);
 
     if (isOverAsteroid) {
-        // Draw targeting square
         const squareSize = 22;
         ctx.strokeStyle = 'yellow';
         ctx.lineWidth = 1;
@@ -1034,7 +1059,6 @@ function gameLoop(timestamp) {
         );
     }
 
-    // Draw cursor dot
     drawCursorDot(isOverAsteroid);
 
     requestAnimationFrame(gameLoop);
