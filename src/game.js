@@ -4,7 +4,7 @@ const weaponButton = document.getElementById('weaponButton');
 const message = document.querySelector('.message');
 const debugEl = initDebugArea();
 
-let ship, asteroids = [], projectiles = [], particles = [], dialogue;
+let ship, asteroids = [], projectiles = [], particles = [], planet, dialogue;
 let world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
 let camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
 
@@ -17,7 +17,7 @@ let currentWeapon = 'laser';
 let entities = [];
 const MOBILE_SCALE = 0.55;
 const MAX_ENTITIES = 200;
-const PARTICLE_COUNT = 200;
+const PARTICLE_COUNT = 400;
 const MIN_ASTEROID_SIZE = 10;
 const INITIAL_ASTEROID_COUNT = 20;
 let GAME_OVER = false;
@@ -25,7 +25,7 @@ let isDraggingFromCenter = false; // For new drag-from-center movement
 const CENTER_CIRCLE_RADIUS = 50 * MOBILE_SCALE;  // Radius of the central UI circle for interaction
 // debug(`cw, ch: ${camera.width}, ${camera.height}`);
 const CENTER_MAXTHRUST_RADIUS = 0.5 * Math.min(camera.width, camera.height) - 8;  // Radius of the central UI circle for interaction
-const CENTER_LOWTHRUST_RADIUS = 0.5 * CENTER_MAXTHRUST_RADIUS + (0.5 *CENTER_CIRCLE_RADIUS);  // Radius of the central UI circle for interaction
+const CENTER_LOWTHRUST_RADIUS = 0.5 * CENTER_MAXTHRUST_RADIUS + (0.5 * CENTER_CIRCLE_RADIUS);  // Radius of the central UI circle for interaction
 let isMouseDown = false;
 let isShootingAsteroid = false;
 let isShooting = false; // New flag to track if shooting is active
@@ -40,7 +40,7 @@ let score = 0;
 let timer = {};
 
 const LASER_FIRE_RATE = 1000;  // 1000ms between shots
-const BULLET_FIRE_RATE = 200;  // 200ms between shots
+const BULLET_FIRE_RATE = 100;  // 100ms between shots
 const MISSILE_FIRE_RATE = 500; // 500ms between shots
 let lastLaserFireTime = 0;
 let lastBulletFireTime = 0;
@@ -139,27 +139,27 @@ class Ship {
         const dx = x + cameraOffset.x - this.x;
         const dy = y + cameraOffset.y - this.y;
         const targetAngle = Math.atan2(dy, dx);
-        
+
         // Calculate time elapsed since last rotation
         const currentTime = performance.now();
         const elapsed = currentTime - this.lastRotationTime;
-        
+
         // Calculate maximum angle change allowed (1 degree per ms)
         const maxChange = this.maxRotationSpeed * elapsed;
-        
+
         // Find the shortest angle between current and target
         let angleDiff = targetAngle - this.angle;
-        
+
         // Normalize angle difference to be between -PI and PI
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-        
+
         // Limit the rotation to the maximum allowed by elapsed time
         if (Math.abs(angleDiff) > maxChange) {
             // Clamp to maximum change
             const direction = angleDiff > 0 ? 1 : -1;
             this.angle += direction * maxChange;
-            
+
             // Ensure angle stays within 0 to 2*PI range
             if (this.angle > Math.PI * 2) this.angle -= Math.PI * 2;
             if (this.angle < 0) this.angle += Math.PI * 2;
@@ -167,7 +167,7 @@ class Ship {
             // Can reach target angle within time constraint
             this.angle = targetAngle;
         }
-        
+
         // Update the last rotation time
         this.lastRotationTime = currentTime;
         this.lastAngle = this.angle;
@@ -179,47 +179,47 @@ class Ship {
         const distance = Math.hypot(this.targetX - this.x, this.targetY - this.y);
         // const maxDistance = 0.5 *Math.min(camera.width, camera.height) - 10;
         const speedAdjust = 0.005;
-        
+
         // Determine the new target speed based on distance
         let baseSpeed = 0;
         if (distance > CENTER_LOWTHRUST_RADIUS) {
-            baseSpeed = 80;
-            this.maxSpeed = 80;
-        } else if (distance > CENTER_CIRCLE_RADIUS) {
             baseSpeed = 40;
             this.maxSpeed = 40;
+        } else if (distance > CENTER_CIRCLE_RADIUS) {
+            baseSpeed = 20;
+            this.maxSpeed = 20;
         } else {
             baseSpeed = 0;
             this.maxSpeed = 0;
         }
-        
+
         // Apply speed adjustment factor (as was done in the original code)
         this.targetSpeed = baseSpeed > 0 ? baseSpeed * speedAdjust : 0;
-        
+
         // Reset speed update timer to start acceleration/deceleration
         this.lastSpeedUpdateTime = performance.now();
-        
+
         // Calculate the new direction in degrees
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const newDirectionRad = Math.atan2(dy, dx);
         const newDirectionDeg = newDirectionRad * 180 / Math.PI;
-        
+
         // Get the current movement direction in degrees
         const currentDirectionDeg = this.movementAngle * 180 / Math.PI;
-        
+
         // Only combine velocities if we already have speed
         if (this.speed > 0 && this.targetSpeed > 0) {
             // Use a momentum factor of 0.8 - adjust this value to control how much momentum is preserved
             const momentumFactor = 0.8;
-            
+
             // Combine the current velocity with the new velocity
             const combinedVelocity = addVelocities(
                 this.speed, currentDirectionDeg,
                 this.targetSpeed, newDirectionDeg,
                 momentumFactor // Pass the momentum factor as the multiplier
             );
-            
+
             // Update movement angle based on the combined velocity
             // Note: We don't set this.speed here anymore since it's handled by the exponential acceleration
             this.movementAngle = combinedVelocity.direction * Math.PI / 180; // Convert back to radians
@@ -227,7 +227,7 @@ class Ship {
             // If currently not moving, just set the new direction
             this.movementAngle = newDirectionRad;
         }
-        
+
         // Set rotation to match movement direction
         this.angle = this.movementAngle;
     }
@@ -237,7 +237,7 @@ class Ship {
         if (isBraking) {
             const currentTime = performance.now();
             const brakeProgress = Math.min(1, (currentTime - brakeStartTime) / 1000);
-            
+
             if (brakeProgress >= 1) {
                 // Braking completed
                 this.speed = 0;
@@ -252,37 +252,37 @@ class Ship {
             // Handle exponential acceleration/deceleration toward target speed
             const currentTime = performance.now();
             const elapsedMs = currentTime - this.lastSpeedUpdateTime;
-            
+
             if (this.speed !== this.targetSpeed) {
                 // Calculate progress factor based on acceleration time
                 const progressFactor = Math.min(1, elapsedMs / this.accelerationTimeMs);
-                
+
                 // Exponential ease-in-out function for smooth acceleration/deceleration
                 const easeInOutExpo = (t) => {
-                    return t === 0 ? 0 : t === 1 ? 1 
+                    return t === 0 ? 0 : t === 1 ? 1
                         : t < 0.5 ? Math.pow(2, 20 * t - 10) / 2
-                        : (2 - Math.pow(2, -20 * t + 10)) / 2;
+                            : (2 - Math.pow(2, -20 * t + 10)) / 2;
                 };
-                
+
                 // Apply the easing function to the progress
                 const easedProgress = easeInOutExpo(progressFactor);
-                
+
                 // Interpolate between current speed and target speed
                 const speedDiff = this.targetSpeed - this.speed;
                 this.speed += speedDiff * easedProgress;
-                
+
                 // If we're very close to the target speed, snap to it
                 if (Math.abs(this.speed - this.targetSpeed) < 0.1) {
                     this.speed = this.targetSpeed;
                 }
-                
+
                 // Update the last speed update time if we've completed this acceleration
                 if (progressFactor >= 1) {
                     this.lastSpeedUpdateTime = currentTime;
                 }
             }
         }
-        
+
         // Move the ship if it has speed
         if (this.speed > 0) {
             const newPos = calculateNewPosition(
@@ -322,7 +322,7 @@ class Ship {
         // ctx.fillStyle = 'white';
         // ctx.fill();
         ctx.translate(-8, 0);
-        drawSVGImg(shipImg, MOBILE_SCALE);
+        drawSVGImg(shipImg, MOBILE_SCALE * 0.7);
         ctx.restore();
     }
 
@@ -358,17 +358,18 @@ class Ship {
         let projectile;
         switch (currentWeapon) {
             case 'laser':
-                projectile = new Laser(this.x, this.y, this.angle);
+                projectile = [new Laser(this.x, this.y, this.angle)];
                 break;
             case 'machineGun':
-                projectile = new Bullet(this.x, this.y, this.angle);
+                let bullet = new Bullet(this.x, this.y, this.angle);
+                projectile = spawnOffsetGroup(bullet, 2, 10); // dual
                 break;
             case 'missile':
-                projectile = new Missile(this.x, this.y, this.angle);
+                projectile = [new Missile(this.x, this.y, this.angle)];
                 break;
         }
-        projectiles.push(projectile);
-        entities.push(projectiles);
+        projectiles.push(...projectile);
+        entities.push(...projectile);
     }
 }
 
@@ -387,7 +388,7 @@ class Asteroid {
         this.saturation = randomMinMax(50, 90);
         this.lightness = randomMinMax(30, 40); // Increased minimum to 45 and range to give 45-80
         this.mass = Math.PI * this.radius * this.radius * 3;
-        
+
         // Add rotation properties
         this.rotationAngle = Math.random() * Math.PI * 2; // Random initial rotation
         this.rotationSpeed = randomMinMax(2, 20) * Math.PI / 180; // Random spin
@@ -402,14 +403,14 @@ class Asteroid {
             this.vertices.push({ x: r * Math.cos(angle), y: r * Math.sin(angle) });
         }
 
-        
+
     }
 
     draw() {
         ctx.save(); // Save the current context state
         ctx.translate(this.x - cameraOffset.x, this.y - cameraOffset.y); // Translate to asteroid position
         ctx.rotate(this.rotationAngle); // Apply rotation
-        
+
         ctx.beginPath();
         // Start at the first vertex (now relative to 0,0 since we've translated)
         ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
@@ -421,7 +422,7 @@ class Asteroid {
         ctx.closePath();
         ctx.fillStyle = `hsl(${this.hue}, ${this.saturation}%, ${this.lightness}%)`;
         ctx.fill();
-        
+
         ctx.restore(); // Restore the context state
     }
 
@@ -436,7 +437,7 @@ class Asteroid {
 
         // Update rotation angle based on rotation speed and deltaTime
         this.rotationAngle += this.rotationSpeed * deltaTime / 1000;
-        
+
         // Keep rotation angle between 0 and 2*PI
         if (this.rotationAngle > Math.PI * 2) {
             this.rotationAngle -= Math.PI * 2;
@@ -459,13 +460,13 @@ class Asteroid {
         // Add new asteroids
         const newAsteroid1 = new Asteroid(this.x, this.y, newRadius);
         const newAsteroid2 = new Asteroid(this.x, this.y, newRadius);
-        
+
         // Increase rotation speed of the new asteroids (1.5-2.5 times faster)
         const speedMultiplier1 = randomMinMax(2, 5);
-        
+
         newAsteroid1.rotationSpeed = this.rotationSpeed * speedMultiplier1;
         newAsteroid2.rotationSpeed = this.rotationSpeed * speedMultiplier1;
-        
+
         // Add new asteroids directly to the arrays
         asteroids.push(newAsteroid1, newAsteroid2);
         entities.push(newAsteroid1, newAsteroid2);
@@ -475,8 +476,26 @@ class Asteroid {
 }
 
 
+class Planet {
+    constructor(x, y) {
+        this.name = 'planet';
+        this.x = x;
+        this.y = y;
+        this.radius = 100;
+    }
+
+    draw() {
+        ctx.fillStyle = 'hsl(200, 50%, 50%)';
+        ctx.beginPath();
+        ctx.arc(this.x - cameraOffset.x, this.y - cameraOffset.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        // ctx.closePath();
+    }
+}
+
+
 class Projectile {
-    constructor(x, y, angle, speed, radius, lifespan) {
+    constructor(x, y, angle, speed = 1000, radius, lifespan = 6000) {
         this.name = 'projectile';
         this.x = x;
         this.y = y;
@@ -495,9 +514,17 @@ class Projectile {
 
     draw() {
         ctx.beginPath();
-        ctx.arc(this.x - cameraOffset.x, this.y - cameraOffset.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'white';
-        ctx.fill();
+        // ctx.arc(this.x - cameraOffset.x, this.y - cameraOffset.y, this.radius, 0, Math.PI * 2);
+        ctx.moveTo(this.x - cameraOffset.x, this.y - cameraOffset.y);
+        ctx.lineTo(
+            this.x - cameraOffset.x + Math.cos(this.angle) * 10,
+            this.y - cameraOffset.y + Math.sin(this.angle) * 10
+        );
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        // ctx.fillStyle = 'white';
+        // ctx.fill();
     }
 }
 
@@ -516,7 +543,7 @@ class Laser extends Projectile {
             this.y - cameraOffset.y + Math.sin(this.angle) * this.speed * this.lifespan / 1000
         );
         ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.stroke();
     }
 }
@@ -524,7 +551,7 @@ class Laser extends Projectile {
 
 class Bullet extends Projectile {
     constructor(x, y, angle) {
-        super(x, y, angle, 1000, 3, 6000);
+        super(x, y, angle, 1000, 3, 3000);
         this.name = 'bullet';
     }
 }
@@ -545,7 +572,7 @@ class Missile extends Projectile {
         const intervals = Math.floor(this.timeSinceLaunch / 50);
         // Speed doubles every interval, but is capped at maxSpeed
         this.speed = Math.min(this.initialSpeed * Math.pow(1.1, intervals), this.maxSpeed);
-        
+
         // Use the parent class's movement logic with our updated speed
         this.x += Math.cos(this.angle) * this.speed * deltaTime / 1000;
         this.y += Math.sin(this.angle) * this.speed * deltaTime / 1000;
@@ -614,7 +641,7 @@ class Particle {
     }
 
     draw() {
-        ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+        ctx.fillStyle = 'hsla(0, 0.00%, 78.40%, 0.50)';
         ctx.beginPath();
         ctx.arc(this.x - cameraOffset.x, this.y - cameraOffset.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -776,13 +803,13 @@ function handleCollisions() {
         if (shipDistance < asteroid.radius + ship.radius) {
             // Game over logic
             GAME_OVER = true;
-            
+
             // Stop the timer when game over
             if (timer.interval) {
                 clearInterval(timer.interval);
                 message.innerText = `${score} | GAME OVER`;
             }
-            
+
             clearEntities();
             console.log("Game over!");
             dialogueText = "Game Over!";
@@ -802,7 +829,7 @@ function drawWorldBorder() {
 
 //////
 function drawMiniMap() {
-    
+
     const minimapSize = {
         width: MINIMAP_SCALE,
         height: world.height / world.width * MINIMAP_SCALE
@@ -917,11 +944,17 @@ function gameLoop(timestamp) {
         particle.draw();
     });
 
+    if (planet) {
+        planet.draw();
+    }
+
     if (isShooting) {
         ship.shoot();
     }
     ship.update(deltaTime);
     ship.draw();
+
+
 
     asteroids.forEach(asteroid => {
         asteroid.update(deltaTime);
@@ -951,15 +984,15 @@ function gameLoop(timestamp) {
     if (isDraggingFromCenter && isMouseDown) { // isMouseDown ensures drag is active
         // Check if pointer has been held in center for 1000ms (for braking)
         const currentTime = performance.now();
-        if (centerHoldStartTime > 0 && 
-            currentTime - centerHoldStartTime >= 600 && 
+        if (centerHoldStartTime > 0 &&
+            currentTime - centerHoldStartTime >= 600 &&
             !isBraking) {
             // Start braking if pointer has been held for 600ms and we're not already braking
             isBraking = true;
             brakeStartTime = currentTime;
             console.log('Brake initiated');
         }
-        
+
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(camera.width / 2, camera.height / 2); // Start from center of camera
@@ -968,7 +1001,7 @@ function gameLoop(timestamp) {
         ctx.lineWidth = 2;
         ctx.stroke();
         ctx.restore();
-        
+
         // Visual feedback for braking
         if (isBraking) {
             const brakeProgress = Math.min(1, (currentTime - brakeStartTime) / 1000);
@@ -988,7 +1021,7 @@ function gameLoop(timestamp) {
 
     // Draw cursor
     const isOverAsteroid = isPointOverAsteroid(mouseX, mouseY);
-    
+
     if (isOverAsteroid) {
         // Draw targeting square
         const squareSize = 22;
@@ -1074,8 +1107,8 @@ function handlePointerDown(event) {
     } else {
         isDraggingFromCenter = false; // Click is outside the center circle
         centerHoldStartTime = 0; // Reset center hold time
-        
-        
+
+
     }
 
     // Add point to contrail
@@ -1128,7 +1161,7 @@ function handlePointerDown(event) {
         // Rotate ship to face mouse position before shooting
         isShooting = true;
         ship.setRotation(mouseX, mouseY);
-    } 
+    }
 
 }
 
@@ -1138,17 +1171,17 @@ function handlePointerMove(event) {
     const scaleY = canvas.height / rect.height;
     mouseX = (event.clientX - rect.left) * scaleX;
     mouseY = (event.clientY - rect.top) * scaleY;
-    
+
     // Check if pointer is still within canvas bounds
     const isWithinCanvas = mouseX >= 0 && mouseX <= canvas.width && mouseY >= 0 && mouseY <= canvas.height;
-    
+
     // If shooting is active and mouse is still down and within canvas
     if (isShooting && isMouseDown && isWithinCanvas && !GAME_OVER) {
         const centerCircleX = camera.width / 2;
         const centerCircleY = camera.height / 2;
         const distToCenter = Math.hypot(mouseX - centerCircleX, mouseY - centerCircleY);
         const isOutsideCenterCircle = (distToCenter > CENTER_CIRCLE_RADIUS);
-        
+
         // Continue shooting if outside center circle
         if (isOutsideCenterCircle) {
             ship.setRotation(mouseX, mouseY);  // Rotate ship to face mouse position before shooting
@@ -1179,10 +1212,10 @@ function handlePointerUp() {
         }
         isDraggingFromCenter = false; // Reset the flag
     }
-    
+
     // Stop shooting when pointer is released
     isShooting = false;
-    
+
     isMouseDown = false;
     centerHoldStartTime = 0; // Reset center hold time when pointer is released
     console.log('pointer up');
@@ -1218,6 +1251,8 @@ function initGame() {
     entities.push(dialogue);
     ship = new Ship();
     entities.push(ship);
+    planet = new Planet(world.width * 0.5, world.width * 0.5);
+    entities.push(planet);
     createParticles();
     spawnInitialAsteroids();
     requestAnimationFrame(gameLoop);
@@ -1229,7 +1264,7 @@ function isPointOverAsteroid(x, y) {
     // Convert screen coordinates to world coordinates by adding camera offset
     const worldX = x + cameraOffset.x;
     const worldY = y + cameraOffset.y;
-    
+
     return asteroids.some(asteroid => {
         const dx = worldX - asteroid.x;
         const dy = worldY - asteroid.y;
@@ -1402,7 +1437,7 @@ function debug(text) {
 
 function isMobile() {
     let mobileChance = 0;
-    
+
     debug(`screen.orientation: ${screen.orientation.type}`);
     // debug(navigator.userAgent);
     debug(`navigator.maxTouchPoints: ${navigator.maxTouchPoints}`);
@@ -1463,7 +1498,7 @@ function drawCenterCircle(radius) {
     const centerX = camera.width / 2;
     const centerY = camera.height / 2;
     // const radius = 50; // Size of the circle - now using global CENTER_CIRCLE_RADIUS
-    
+
     ctx.save();
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
@@ -1479,12 +1514,12 @@ function startTimer(durationMins) {
     timer.startTime = Date.now(); // in milliseconds
     timer.duration = durationMins * 60 * 1000; // x minutes in ms
     timer.timerExpired = false;
-    
+
     // Start a timer that updates every second to show score and remaining time
     if (timer.interval) {
         clearInterval(timer.interval);
     }
-    
+
     timer.interval = setInterval(() => {
         if (!isTimerExpired()) {
             // Update the message with score and timer
@@ -1495,16 +1530,16 @@ function startTimer(durationMins) {
 }
 
 function checkTimer() {
-  const elapsed = Date.now() - timer.startTime;
-  const remaining = Math.max(0, timer.duration - elapsed);
-  
-  // Format remaining time
-  const mins = Math.floor(remaining / 60000);
-  const secs = Math.floor((remaining % 60000) / 1000);
-  const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-//   console.log(`Remaining: ${formatted}`);
+    const elapsed = Date.now() - timer.startTime;
+    const remaining = Math.max(0, timer.duration - elapsed);
 
-  return formatted;
+    // Format remaining time
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    //   console.log(`Remaining: ${formatted}`);
+
+    return formatted;
 }
 
 function isTimerExpired() {
@@ -1512,10 +1547,10 @@ function isTimerExpired() {
     if (GAME_OVER) {
         return true;
     }
-    
+
     // Calculate elapsed time
     const elapsed = Date.now() - timer.startTime;
-    
+
     // Check if timer has expired
     if (!timer.timerExpired && elapsed >= timer.duration) {
         timer.timerExpired = true;
@@ -1528,9 +1563,56 @@ function isTimerExpired() {
         message.innerText = `GAME OVER | Final Score: ${score}`;
         return true;
     }
-    
+
     return false;
 }
+
+/**
+ * Spawns a group of projectiles in a line or fan shape.
+ *
+ * @param {Projectile} primaryObj - The projectile to use as a template.
+ * @param {number} count - total number of projectiles to include.
+ * @param {number} spacing - pixel distance between adjacent projectiles.
+ * @param {number} spreadAngle - total angular spread in degrees (0 = parallel).
+ * @param {...any} args - extra constructor args for projectile subclasses.
+ * @returns {Projectile[]} all projectiles.
+ */
+function spawnOffsetGroup(primaryObj, count = 2, spacing = 10, spreadAngle = 0, ...args) {
+    if (count < 1) return [];
+
+    const baseAngle = primaryObj.angle;
+    // This was converting degrees to radians, but angle is already in radians.
+    // const radians = baseAngle * (Math.PI / 180); 
+    const dx = Math.cos(baseAngle + Math.PI / 2);
+    const dy = Math.sin(baseAngle + Math.PI / 2);
+    const ProjectileClass = primaryObj.constructor;
+
+    const mid = (count - 1) / 2;
+    const angleStep = count > 1 ? (spreadAngle * Math.PI / 180) / (count - 1) : 0; // Convert spreadAngle to radians
+    const projectiles = [];
+
+    for (let i = 0; i < count; i++) {
+        const offsetIndex = i - mid;
+        const offsetX = dx * offsetIndex * spacing;
+        const offsetY = dy * offsetIndex * spacing;
+        const angleOffset = (offsetIndex * angleStep) / 2; // symmetric spread
+
+        const angle = baseAngle + angleOffset;
+
+        // Create a new projectile for each item in the group
+        const newProjectile = new ProjectileClass(
+            primaryObj.x + offsetX,
+            primaryObj.y + offsetY,
+            angle,
+            ...args
+        );
+
+        projectiles.push(newProjectile);
+    }
+
+    return projectiles;
+}
+
 
 
 /**
@@ -1547,36 +1629,36 @@ function addVelocities(speed1, direction1, speed2, direction2, multiplier = 1) {
     // Convert directions from degrees to radians for trigonometric functions
     const direction1Rad = direction1 * Math.PI / 180;
     const direction2Rad = direction2 * Math.PI / 180;
-  
+
     // Calculate the x and y components of the first velocity (with multiplier)
     const x1 = speed1 * Math.cos(direction1Rad) * multiplier;
     const y1 = speed1 * Math.sin(direction1Rad) * multiplier;
-  
+
     // Calculate the x and y components of the second velocity
     const x2 = speed2 * Math.cos(direction2Rad);
     const y2 = speed2 * Math.sin(direction2Rad);
-  
+
     // Add the corresponding x and y components to find the resultant components
     const resultantX = x1 + x2;
     const resultantY = y1 + y2;
-  
+
     // Calculate the resultant speed (magnitude) using the Pythagorean theorem
     const resultantSpeed = Math.sqrt(resultantX * resultantX + resultantY * resultantY);
-  
+
     // Calculate the resultant direction (angle) using arctangent.
     // Math.atan2 handles the full range of angles and avoids division by zero.
     let resultantDirectionRad = Math.atan2(resultantY, resultantX);
-  
+
     // Convert the resultant direction back to degrees
     let resultantDirection = resultantDirectionRad * 180 / Math.PI;
-  
+
     // Ensure the direction is between 0 and 360 degrees
     if (resultantDirection < 0) {
-      resultantDirection += 360;
+        resultantDirection += 360;
     }
-  
+
     return { speed: resultantSpeed, direction: resultantDirection };
-  }
+}
 
 const shipSVG = `
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1110" height="1110" viewBox="817.5,362.5,110,110"><g id="document" fill="#ffffff" fill-rule="nonzero" stroke="#000000" stroke-width="0" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" ><rect x="5202.27273" y="1647.72727" transform="scale(0.15714,0.22)" width="700" height="500" id="Shape 1 1" vector-effect="non-scaling-stroke"/></g><g fill="white" fill-rule="nonzero" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"><g id="stage"><g id="layer1 1"><path d="M821.60345,466.98276l41.81819,-87.88263l7.42319,-15.60013l52.65517,102.79311l-51.44828,-27.18965z" id="Path 3"/><path d="M868.01726,412.38048l6.75056,-0.02159l5.04149,20.55973l-16.36421,0.3818z" id="Path 3"/><path d="M870.87479,369.24255l0.64607,43.36469" id="Path 3"/><path d="M871.85375,460.37879l5.79776,-5.75343l-12.15152,-0.03429z" id="Path 3"/><path d="M874.15248,426.12645" id="Path 3"/><path d="M849.41412,447.8546l21.46448,-78.27112l24.75585,78.18049" id="Path 3"/><path d="M822.40716,465.29373l49.43258,-31.91997l51.00257,31.63544" id="Path 1 1"/><path d="M863.26579,444.29662l2.23421,7.02571h12l2.14622,-8.20529" id="Path 3"/><path d="M864.93246,450.72458l-5.90909,3.33333l-2.87879,-2.12121l1.61797,-4.9366" id="Path 3"/><path d="M878.65151,450.52932l5.90909,3.33333l2.87879,-2.12121l-1.61797,-4.9366" id="Path 2 1"/><path d="M871.75064,438.9064l-0.30303,12.41593" id="Path 3"/><path d="M872.81125,411.78519" id="Path 3"/></g></g></g></svg>
