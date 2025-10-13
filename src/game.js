@@ -21,6 +21,7 @@ const PARTICLE_COUNT = 400;
 const MIN_ASTEROID_SIZE = 10;
 const INITIAL_ASTEROID_COUNT = 20;
 let GAME_OVER = false;
+let GAME_PAUSED = false;
 let isDraggingFromCenter = false; // For new drag-from-center movement
 const CENTER_CIRCLE_RADIUS = 50 * MOBILE_SCALE;  // Radius of the central UI circle for interaction
 // debug(`cw, ch: ${camera.width}, ${camera.height}`);
@@ -908,6 +909,15 @@ const actionBtnSize = {
     // }
 }
 
+const pauseBtnSize = {
+    // button dimensions - same size as action button
+    buttonWidth: ((camera.width < 800) ? camera.width * 0.2 : camera.width * 0.1),
+    buttonHeight: camera.height * 0.1,
+    // Position 10px above the action button
+    buttonPosX: 10,
+    buttonPosY: camera.height - (camera.height * 0.1 + 10) - (camera.height * 0.1 + 10),
+}
+
 const resetBtnSize = {
     // button dimensions
     buttonWidth: camera.width * 0.25, // rectWidth * 0.5 (half of camera.width * 0.5)
@@ -976,6 +986,7 @@ function gameLoop(timestamp) {
     // Draw the UI elements last, so they appear on top
     drawMiniMap();
     drawButton(actionBtnSize); // comment
+    drawButton(pauseBtnSize); // pause button
     drawCenterCircle(CENTER_CIRCLE_RADIUS); // Draw white circle at center of camera
     drawCenterCircle(CENTER_LOWTHRUST_RADIUS); // Draw white circle at center of camera
     drawCenterCircle(CENTER_MAXTHRUST_RADIUS); // Draw white circle at center of camera
@@ -993,24 +1004,12 @@ function gameLoop(timestamp) {
             console.log('Brake initiated');
         }
 
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(camera.width / 2, camera.height / 2); // Start from center of camera
-        ctx.lineTo(mouseX, mouseY); // End at current mouse position
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
+        drawDragFromCenterLine();
 
         // Visual feedback for braking
         if (isBraking) {
             const brakeProgress = Math.min(1, (currentTime - brakeStartTime) / 1000);
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(camera.width / 2, camera.height / 2, CENTER_CIRCLE_RADIUS * brakeProgress, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(200, 200, 200, ${0.3 + (brakeProgress * 0.3)})`;
-            ctx.fill();
-            ctx.restore();
+            drawBrakingEffect(brakeProgress);
         }
 
     }
@@ -1039,6 +1038,26 @@ function gameLoop(timestamp) {
     drawCursorDot(isOverAsteroid);
 
     requestAnimationFrame(gameLoop);
+
+    function drawDragFromCenterLine() {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(camera.width / 2, camera.height / 2); // Start from center of camera
+        ctx.lineTo(mouseX, mouseY); // End at current mouse position
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawBrakingEffect(brakeProgress) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(camera.width / 2, camera.height / 2, CENTER_CIRCLE_RADIUS * brakeProgress, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 200, 200, ${0.3 + (brakeProgress * 0.3)})`;
+        ctx.fill();
+        ctx.restore();
+    }
 }
 
 // Mouse contrail tracking
@@ -1147,6 +1166,12 @@ function handlePointerDown(event) {
                 break;
         }
         // ship.shoot();
+    }
+
+    // Handle pause button click
+    if (!GAME_OVER && isUIButtonClicked(pauseBtnSize)) {
+        GAME_PAUSED = !GAME_PAUSED;
+        console.log('Game paused:', GAME_PAUSED);
     }
 
     const asteroidClicked = asteroids.some(asteroid => {
