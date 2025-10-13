@@ -5,6 +5,7 @@ const message = document.querySelector('.message');
 const debugEl = initDebugArea();
 
 let ship, asteroids = [], projectiles = [], particles = [], planet, dialogue;
+let beams = []; // Array to track active beams
 let world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
 let camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
 
@@ -43,9 +44,11 @@ let timer = {};
 const LASER_FIRE_RATE = 1000;  // 1000ms between shots
 const BULLET_FIRE_RATE = 100;  // 100ms between shots
 const MISSILE_FIRE_RATE = 500; // 500ms between shots
+const BEAM_FIRE_RATE = 800;    // 800ms between shots
 let lastLaserFireTime = 0;
 let lastBulletFireTime = 0;
 let lastMissileFireTime = 0;
+let lastBeamFireTime = 0;
 
 const shipSVG2 = `
 <svg xmlns="http://www.w3.org/2000/svg" width="62" height="62"> <polygon points="34,12 26,30 28,32 32,30 30,32 30,32 34,30 34,32 36,32 36,30 38,32 38,32 38,30 42,32 44,32" fill=grey /> </svg>
@@ -352,9 +355,23 @@ class Ship {
                     lastMissileFireTime = currentTime;
                 }
                 break;
+            case 'beam':
+                if (currentTime - lastBeamFireTime >= BEAM_FIRE_RATE) {
+                    canFire = true;
+                    lastBeamFireTime = currentTime;
+                }
+                break;
         }
 
         if (!canFire) return;
+
+        // Handle beam weapon separately since it doesn't go into projectiles array
+        if (currentWeapon === 'beam') {
+            const beam = new Beam(this.x, this.y, this.angle);
+            beams.push(beam);
+            entities.push(beam);
+            return;
+        }
 
         let projectile;
         switch (currentWeapon) {
@@ -532,7 +549,7 @@ class Projectile {
 
 class Laser extends Projectile {
     constructor(x, y, angle) {
-        super(x, y, angle, 1000, 2, 1000);
+        super(x, y, angle, 6000, 10, 100);
         this.name = 'laser';
     }
 
@@ -613,6 +630,91 @@ class Contrail extends Projectile {
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
         ctx.stroke();
+    }
+}
+
+
+class Beam {
+    constructor(x, y, angle) {
+        this.name = 'beam';
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.length = 400;      // Length of the beam
+        this.radius = 8;         // Width/radius of the beam
+        this.lifespan = 200;     // How long the beam stays active (ms)
+        this.createdAt = performance.now();
+        
+        // Calculate end point of the beam
+        this.endX = this.x + Math.cos(this.angle) * this.length;
+        this.endY = this.y + Math.sin(this.angle) * this.length;
+    }
+
+    update(deltaTime) {
+        this.lifespan -= deltaTime;
+    }
+
+    draw() {
+        // Draw the beam as a thick line
+        ctx.save();
+        
+        // Create gradient for visual effect
+        const gradient = ctx.createLinearGradient(
+            this.x - cameraOffset.x, 
+            this.y - cameraOffset.y,
+            this.endX - cameraOffset.x, 
+            this.endY - cameraOffset.y
+        );
+        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.6)');
+        gradient.addColorStop(1, 'rgba(0, 150, 255, 0.2)');
+        
+        ctx.beginPath();
+        ctx.moveTo(this.x - cameraOffset.x, this.y - cameraOffset.y);
+        ctx.lineTo(this.endX - cameraOffset.x, this.endY - cameraOffset.y);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = this.radius * 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // Add outer glow
+        ctx.beginPath();
+        ctx.moveTo(this.x - cameraOffset.x, this.y - cameraOffset.y);
+        ctx.lineTo(this.endX - cameraOffset.x, this.endY - cameraOffset.y);
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+        ctx.lineWidth = this.radius * 3;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+
+    // Check if a point is within the beam's area
+    isPointInBeam(px, py) {
+        // Vector from beam start to point
+        const dx = px - this.x;
+        const dy = py - this.y;
+        
+        // Beam direction vector
+        const beamDx = Math.cos(this.angle);
+        const beamDy = Math.sin(this.angle);
+        
+        // Project point onto beam line
+        const projection = dx * beamDx + dy * beamDy;
+        
+        // Check if projection is within beam length
+        if (projection < 0 || projection > this.length) {
+            return false;
+        }
+        
+        // Find closest point on beam line
+        const closestX = this.x + beamDx * projection;
+        const closestY = this.y + beamDy * projection;
+        
+        // Check distance from point to closest point on line
+        const distance = Math.hypot(px - closestX, py - closestY);
+        
+        return distance <= this.radius;
     }
 }
 
@@ -799,6 +901,34 @@ function handleCollisions() {
             }
         }
 
+        // Check collision with beams
+        for (let k = 0; k < beams.length; k++) {
+            const beam = beams[k];
+            
+            // Check if asteroid center is within beam area
+            if (beam.isPointInBeam(asteroid.x, asteroid.y)) {
+                score++;
+                message.innerText = score;
+
+                // Split the asteroid
+                const newAsteroids = asteroid.split();
+                asteroids.splice(i, 1);
+                entities.splice(entities.indexOf(asteroid), 1);
+                i--;
+
+                // Add new asteroids to the game
+                for (const newAsteroid of newAsteroids) {
+                    newAsteroid.velocityX = asteroid.velocityX + (Math.random() - 0.5) * 20;
+                    newAsteroid.velocityY = asteroid.velocityY + (Math.random() - 0.5) * 20;
+                    asteroids.push(newAsteroid);
+                    entities.push(newAsteroid);
+                }
+
+                // Don't remove the beam - it can hit multiple asteroids
+                break;
+            }
+        }
+
         // Check collision with ship
         const shipDistance = Math.hypot(ship.x - asteroid.x, ship.y - asteroid.y);
         if (shipDistance < asteroid.radius + ship.radius) {
@@ -975,6 +1105,16 @@ function gameLoop(timestamp) {
             }
         });
 
+        // Update beams
+        beams.forEach((beam, index) => {
+            beam.update(deltaTime);
+
+            if (beam.lifespan <= 0) {
+                beams.splice(index, 1);
+                entities.splice(entities.indexOf(beam), 1);
+            }
+        });
+
         // Handle collisions
         handleCollisions();
 
@@ -1018,6 +1158,11 @@ function gameLoop(timestamp) {
     // Draw projectiles
     projectiles.forEach(projectile => {
         projectile.draw();
+    });
+
+    // Draw beams
+    beams.forEach(beam => {
+        beam.draw();
     });
 
     // Draw the UI elements last, so they appear on top
@@ -1169,6 +1314,7 @@ function handlePointerDown(event) {
         // Clear all entities and respawn asteroids
         asteroids = [];
         projectiles = [];
+        beams = [];
         entities = [];
         spawnInitialAsteroids();
     }
@@ -1185,6 +1331,10 @@ function handlePointerDown(event) {
                 // weaponButton.textContent = '🚀';
                 break;
             case 'missile':
+                currentWeapon = 'beam';
+                // weaponButton.textContent = '⚡';
+                break;
+            case 'beam':
                 currentWeapon = 'laser';
                 // weaponButton.textContent = '🔦';
                 break;
