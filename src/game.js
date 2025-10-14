@@ -905,8 +905,30 @@ function handleCollisions() {
         for (let k = 0; k < beams.length; k++) {
             const beam = beams[k];
             
-            // Check if asteroid center is within beam area
-            if (beam.isPointInBeam(asteroid.x, asteroid.y)) {
+            // Check if asteroid (including its edges) intersects with beam
+            // Vector from beam start to asteroid center
+            const dx = asteroid.x - beam.x;
+            const dy = asteroid.y - beam.y;
+            
+            // Beam direction vector
+            const beamDx = Math.cos(beam.angle);
+            const beamDy = Math.sin(beam.angle);
+            
+            // Project asteroid center onto beam line
+            const projection = dx * beamDx + dy * beamDy;
+            
+            // Clamp projection to beam length
+            const clampedProjection = Math.max(0, Math.min(projection, beam.length));
+            
+            // Find closest point on beam line to asteroid center
+            const closestX = beam.x + beamDx * clampedProjection;
+            const closestY = beam.y + beamDy * clampedProjection;
+            
+            // Check distance from asteroid center to closest point on beam
+            const distance = Math.hypot(asteroid.x - closestX, asteroid.y - closestY);
+            
+            // Collision if distance is less than asteroid radius plus beam radius
+            if (distance <= asteroid.radius + beam.radius) {
                 score++;
                 message.innerText = score;
 
