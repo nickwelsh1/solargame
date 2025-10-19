@@ -348,7 +348,7 @@ class Ship {
     }
 
     shoot() {
-        if (entities.length >= CONFIG.MAX_ENTITIES) return;
+        if (entities.length >= CONFIG.MAX_ENTITIES + 10) return;
 
         const currentTime = performance.now();
         let canFire = false;
@@ -488,6 +488,7 @@ class Asteroid {
     }
 
     split() {
+        if (entities.length > CONFIG.MAX_ENTITIES) return [];
         if (this.radius < CONFIG.MIN_ASTEROID_SIZE) return [];
 
         const newRadius = this.radius * 0.5;
