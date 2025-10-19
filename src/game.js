@@ -4,7 +4,7 @@ const weaponButton = document.getElementById('weaponButton');
 const message = document.querySelector('.message');
 const debugEl = initDebugArea();
 
-let ship, asteroids = [], projectiles = [], particles = [], planet, dialogue;
+let ship, asteroids = [], projectiles = [], particles = [], planets = [], dialogue;
 let beams = []; // Array to track active beams
 let world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
 let camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
@@ -514,9 +514,14 @@ class Asteroid {
 class Planet {
     constructor(x, y) {
         this.name = 'planet';
-        this.x = x;
-        this.y = y;
         this.radius = 100;
+        // If x,y not provided, generate random position within world bounds
+        this.x = x !== undefined ? x : this.radius + Math.random() * (world.width - this.radius * 2);
+        this.y = y !== undefined ? y : this.radius + Math.random() * (world.height - this.radius * 2);
+    }
+
+    update() {
+        // Planets don't move, but we need this method for the game loop
     }
 
     draw() {
@@ -524,7 +529,6 @@ class Planet {
         ctx.beginPath();
         ctx.arc(this.x - cameraOffset.x, this.y - cameraOffset.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
-        // ctx.closePath();
     }
 }
 
@@ -866,6 +870,23 @@ function spawnInitialAsteroids() {
     console.log('asteroids spawned:', asteroids.length);
 }
 
+function spanInitialPlanets() {
+    // Clear existing planets
+    // planets = [];
+
+    // Spawn 1-3 planets
+    const planetCount = randomMinMax(1, 3);
+
+    for (let i = 0; i < planetCount; i++) {
+        if (entities.length < CONFIG.MAX_ENTITIES) {
+            const planet = new Planet();
+            planets.push(planet);
+            entities.push(planet);
+        }
+    }
+    console.log('planets spawned:', planets.length);
+}
+
 function createParticles() {
     for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
         particles.push(new Particle());
@@ -1172,6 +1193,59 @@ function handleAsteroidAsteroidCollision(a, b) {
 /**
  * Main collision handler - orchestrates all collision checks
  */
+function checkAsteroidPlanetCollisions() {
+    // if no planets, return
+    if (planets.length === 0) return;
+
+    for (let j = 0; j < planets.length; j++) {
+        const planet = planets[j];
+        for (let i = 0; i < asteroids.length; i++) {
+            const asteroid = asteroids[i];
+            const dx = planet.x - asteroid.x;
+            const dy = planet.y - asteroid.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Check if asteroid is colliding with planet
+            if (distance < asteroid.radius + planet.radius) {
+                // Calculate normal vector from planet to asteroid
+                const nx = dx / distance;
+                const ny = dy / distance;
+
+                // Calculate relative velocity (planet is immovable, so it's just asteroid's velocity)
+                const relativeVelocity = {
+                    x: asteroid.velocityX,
+                    y: asteroid.velocityY
+                };
+
+                // Calculate velocity along the normal
+                const velocityAlongNormal = relativeVelocity.x * nx + relativeVelocity.y * ny;
+
+                // Only resolve if objects are moving towards each other
+                if (velocityAlongNormal > 0) continue;
+
+                // Calculate impulse scalar (simple bounce with some energy loss)
+                const restitution = 0.7; // Bounciness factor (1.0 = perfect bounce, 0.0 = no bounce)
+                const j = -(1 + restitution) * velocityAlongNormal;
+
+                // Apply impulse (only to asteroid since planet is immovable)
+                asteroid.velocityX -= j * nx;
+                asteroid.velocityY -= j * ny;
+
+                // Move asteroid out of collision
+                console.log('asteroid', asteroid.x, asteroid.y);
+                console.log('planet', planet.x, planet.y);
+                console.log('distance', distance);
+                const overlap = (asteroid.radius + planet.radius - distance) * 1.01; // Small extra push
+                asteroid.x -= overlap * nx;
+                asteroid.y -= overlap * ny;
+
+                // TODO: Add some visual feedback
+
+            }
+        }
+    }
+}
+
 function handleCollisions() {
     if (state.game_paused) {
         return;
@@ -1181,6 +1255,7 @@ function handleCollisions() {
     checkBeamAsteroidCollisions();
     checkShipAsteroidCollisions();
     checkAsteroidAsteroidCollisions();
+    checkAsteroidPlanetCollisions();
 }
 
 
@@ -1393,9 +1468,9 @@ function gameLoop(timestamp) {
     });
 
     // Draw planet
-    if (planet) {
+    planets.forEach(planet => {
         planet.draw();
-    }
+    });
 
     // Draw ship
     ship.draw();
@@ -1702,8 +1777,7 @@ function initGame() {
     entities.push(dialogue);
     ship = new Ship();
     entities.push(ship);
-    planet = new Planet(world.width * 0.5, world.width * 0.5);
-    entities.push(planet);
+    spanInitialPlanets();
     createParticles();
     spawnInitialAsteroids();
     requestAnimationFrame(gameLoop);
