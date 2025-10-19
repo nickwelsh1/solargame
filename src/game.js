@@ -872,116 +872,227 @@ function createParticles() {
     }
 }
 
+// Collision Detection Helper Functions
+
+/**
+ * Check if two circles collide
+ * @param {number} x1 - First circle x position
+ * @param {number} y1 - First circle y position
+ * @param {number} r1 - First circle radius
+ * @param {number} x2 - Second circle x position
+ * @param {number} y2 - Second circle y position
+ * @param {number} r2 - Second circle radius
+ * @returns {boolean} - True if collision detected
+ */
+function checkCircleCollision(x1, y1, r1, x2, y2, r2) {
+    const distance = Math.hypot(x2 - x1, y2 - y1);
+    return distance < r1 + r2;
+}
+
+/**
+ * Check if a line segment (beam) collides with a circle
+ * @param {Object} beam - Beam object with x, y, angle, length, radius
+ * @param {number} circleX - Circle x position
+ * @param {number} circleY - Circle y position
+ * @param {number} circleRadius - Circle radius
+ * @returns {boolean} - True if collision detected
+ */
+function checkLineCircleCollision(beam, circleX, circleY, circleRadius) {
+    // Vector from beam start to circle center
+    const dx = circleX - beam.x;
+    const dy = circleY - beam.y;
+
+    // Beam direction vector
+    const beamDx = Math.cos(beam.angle);
+    const beamDy = Math.sin(beam.angle);
+
+    // Project circle center onto beam line
+    const projection = dx * beamDx + dy * beamDy;
+
+    // Clamp projection to beam length
+    const clampedProjection = Math.max(0, Math.min(projection, beam.length));
+
+    // Find closest point on beam line to circle center
+    const closestX = beam.x + beamDx * clampedProjection;
+    const closestY = beam.y + beamDy * clampedProjection;
+
+    // Check distance from circle center to closest point on beam
+    const distance = Math.hypot(circleX - closestX, circleY - closestY);
+
+    return distance <= circleRadius + beam.radius;
+}
+
+/**
+ * Increment the game score and update display
+ */
+function incrementScore() {
+    state.score++;
+    message.innerText = state.score;
+}
+
+/**
+ * Calculate impact velocity based on conservation of momentum
+ * @param {Object} asteroid - Asteroid object
+ * @param {Object} projectile - Projectile object
+ * @returns {Object} - New velocity {x, y}
+ */
+function calculateImpactVelocity(asteroid, projectile) {
+    const totalMass = asteroid.mass + projectile.mass;
+    const newVelocityX = (
+        asteroid.mass * asteroid.velocityX +
+        projectile.mass * Math.cos(projectile.angle) * projectile.speed
+    ) / totalMass;
+    const newVelocityY = (
+        asteroid.mass * asteroid.velocityY +
+        projectile.mass * Math.sin(projectile.angle) * projectile.speed
+    ) / totalMass;
+    return { x: newVelocityX, y: newVelocityY };
+}
+
+/**
+ * Destroy an asteroid and spawn fragments
+ * @param {Object} asteroid - Asteroid to destroy
+ * @param {number} baseVelocityX - Base X velocity for fragments
+ * @param {number} baseVelocityY - Base Y velocity for fragments
+ * @param {number} velocityRandomness - Random velocity variation (default: 20)
+ */
+function destroyAsteroid(asteroid, baseVelocityX, baseVelocityY, velocityRandomness = 20) {
+    // Split the asteroid
+    const newAsteroids = asteroid.split();
+
+    // Remove asteroid from arrays
+    const asteroidIndex = asteroids.indexOf(asteroid);
+    if (asteroidIndex !== -1) {
+        asteroids.splice(asteroidIndex, 1);
+    }
+    const entityIndex = entities.indexOf(asteroid);
+    if (entityIndex !== -1) {
+        entities.splice(entityIndex, 1);
+    }
+
+    // Add new asteroids with velocity
+    for (const newAsteroid of newAsteroids) {
+        newAsteroid.velocityX = baseVelocityX + (Math.random() - 0.5) * velocityRandomness;
+        newAsteroid.velocityY = baseVelocityY + (Math.random() - 0.5) * velocityRandomness;
+        asteroids.push(newAsteroid);
+        entities.push(newAsteroid);
+    }
+}
+
+/**
+ * Remove a projectile from game arrays
+ * @param {Object} projectile - Projectile to remove
+ */
+function removeProjectile(projectile) {
+    const projectileIndex = projectiles.indexOf(projectile);
+    if (projectileIndex !== -1) {
+        projectiles.splice(projectileIndex, 1);
+    }
+    const entityIndex = entities.indexOf(projectile);
+    if (entityIndex !== -1) {
+        entities.splice(entityIndex, 1);
+    }
+}
+
+/**
+ * Handle game over state
+ */
+function triggerGameOver() {
+    state.game_over = true;
+
+    // Stop the timer when game over
+    if (state.timer.interval) {
+        clearInterval(state.timer.interval);
+        message.innerText = `${state.score} | GAME OVER`;
+    }
+
+    clearEntities();
+    console.log("Game over!");
+    ui.dialogueText = "Game Over!";
+}
+
+/**
+ * Check collisions between projectiles and asteroids
+ */
+function checkProjectileAsteroidCollisions() {
+    for (let i = asteroids.length - 1; i >= 0; i--) {
+        const asteroid = asteroids[i];
+
+        for (let j = projectiles.length - 1; j >= 0; j--) {
+            const projectile = projectiles[j];
+
+            if (checkCircleCollision(
+                projectile.x, projectile.y, projectile.radius,
+                asteroid.x, asteroid.y, asteroid.radius
+            )) {
+                incrementScore();
+
+                // Calculate impact velocity
+                const impactVelocity = calculateImpactVelocity(asteroid, projectile);
+
+                // Destroy asteroid and create fragments
+                destroyAsteroid(asteroid, impactVelocity.x, impactVelocity.y);
+
+                // Remove the projectile
+                removeProjectile(projectile);
+
+                break; // Move to next asteroid
+            }
+        }
+    }
+}
+
+/**
+ * Check collisions between beams and asteroids
+ */
+function checkBeamAsteroidCollisions() {
+    for (let i = asteroids.length - 1; i >= 0; i--) {
+        const asteroid = asteroids[i];
+
+        for (let k = 0; k < beams.length; k++) {
+            const beam = beams[k];
+
+            if (checkLineCircleCollision(beam, asteroid.x, asteroid.y, asteroid.radius)) {
+                incrementScore();
+
+                // Destroy asteroid with its current velocity
+                destroyAsteroid(asteroid, asteroid.velocityX, asteroid.velocityY);
+
+                // Don't remove the beam - it can hit multiple asteroids
+                break; // Move to next asteroid
+            }
+        }
+    }
+}
+
+/**
+ * Check collisions between ship and asteroids
+ */
+function checkShipAsteroidCollisions() {
+    for (let i = 0; i < asteroids.length; i++) {
+        const asteroid = asteroids[i];
+
+        if (checkCircleCollision(
+            ship.x, ship.y, ship.radius,
+            asteroid.x, asteroid.y, asteroid.radius
+        )) {
+            triggerGameOver();
+            return; // Exit immediately on game over
+        }
+    }
+}
+
+/**
+ * Main collision handler - orchestrates all collision checks
+ */
 function handleCollisions() {
     if (state.game_over) {
         return;
     }
-    for (let i = 0; i < asteroids.length; i++) {
-        const asteroid = asteroids[i];
 
-        // Check collision with projectiles
-        for (let j = 0; j < projectiles.length; j++) {
-            const projectile = projectiles[j];
-            const distance = Math.hypot(projectile.x - asteroid.x, projectile.y - asteroid.y);
-
-            if (distance < asteroid.radius + projectile.radius) {
-                state.score++;
-                message.innerText = state.score;
-                // Calculate new velocities based on conservation of momentum and energy
-                const totalMass = asteroid.mass + projectile.mass;
-                const newVelocityX = (asteroid.mass * asteroid.velocityX + projectile.mass * Math.cos(projectile.angle) * projectile.speed) / totalMass;
-                const newVelocityY = (asteroid.mass * asteroid.velocityY + projectile.mass * Math.sin(projectile.angle) * projectile.speed) / totalMass;
-
-                // Split the asteroid
-                const newAsteroids = asteroid.split();
-                asteroids.splice(i, 1);
-                entities.splice(entities.indexOf(asteroid), 1);
-                i--;
-
-                // Add new asteroids to the game
-                for (const newAsteroid of newAsteroids) {
-                    newAsteroid.velocityX = newVelocityX + (Math.random() - 0.5) * 20;
-                    newAsteroid.velocityY = newVelocityY + (Math.random() - 0.5) * 20;
-                    asteroids.push(newAsteroid);
-                    entities.push(newAsteroid);
-                }
-
-                // Remove the projectile
-                projectiles.splice(j, 1);
-                entities.splice(entities.indexOf(projectile), 1);
-                j--;
-
-                break;
-            }
-        }
-
-        // Check collision with beams
-        for (let k = 0; k < beams.length; k++) {
-            const beam = beams[k];
-
-            // Check if asteroid (including its edges) intersects with beam
-            // Vector from beam start to asteroid center
-            const dx = asteroid.x - beam.x;
-            const dy = asteroid.y - beam.y;
-
-            // Beam direction vector
-            const beamDx = Math.cos(beam.angle);
-            const beamDy = Math.sin(beam.angle);
-
-            // Project asteroid center onto beam line
-            const projection = dx * beamDx + dy * beamDy;
-
-            // Clamp projection to beam length
-            const clampedProjection = Math.max(0, Math.min(projection, beam.length));
-
-            // Find closest point on beam line to asteroid center
-            const closestX = beam.x + beamDx * clampedProjection;
-            const closestY = beam.y + beamDy * clampedProjection;
-
-            // Check distance from asteroid center to closest point on beam
-            const distance = Math.hypot(asteroid.x - closestX, asteroid.y - closestY);
-
-            // Collision if distance is less than asteroid radius plus beam radius
-            if (distance <= asteroid.radius + beam.radius) {
-                state.score++;
-                message.innerText = state.score;
-
-                // Split the asteroid
-                const newAsteroids = asteroid.split();
-                asteroids.splice(i, 1);
-                entities.splice(entities.indexOf(asteroid), 1);
-                i--;
-
-                // Add new asteroids to the game
-                for (const newAsteroid of newAsteroids) {
-                    newAsteroid.velocityX = asteroid.velocityX + (Math.random() - 0.5) * 20;
-                    newAsteroid.velocityY = asteroid.velocityY + (Math.random() - 0.5) * 20;
-                    asteroids.push(newAsteroid);
-                    entities.push(newAsteroid);
-                }
-
-                // Don't remove the beam - it can hit multiple asteroids
-                break;
-            }
-        }
-
-        // Check collision with ship
-        const shipDistance = Math.hypot(ship.x - asteroid.x, ship.y - asteroid.y);
-        if (shipDistance < asteroid.radius + ship.radius) {
-            // Game over logic
-            state.game_over = true;
-
-            // Stop the timer when game over
-            if (state.timer.interval) {
-                clearInterval(state.timer.interval);
-                message.innerText = `${state.score} | GAME OVER`;
-            }
-
-            clearEntities();
-            console.log("Game over!");
-            ui.dialogueText = "Game Over!";
-        }
-    }
+    checkProjectileAsteroidCollisions();
+    checkBeamAsteroidCollisions();
+    checkShipAsteroidCollisions();
 }
 
 
