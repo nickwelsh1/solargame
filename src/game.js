@@ -14,41 +14,58 @@ let MINIMAP_MARGIN = 0;
 
 resizeCanvas();
 const cameraOffset = { x: 0, y: 0 };
-let currentWeapon = 'laser';
 let entities = [];
-const MOBILE_SCALE = 0.55;
-const MAX_ENTITIES = 200;
-const PARTICLE_COUNT = 400;
-const MIN_ASTEROID_SIZE = 10;
-const INITIAL_ASTEROID_COUNT = 20;
-let GAME_OVER = false;
-let GAME_PAUSED = false;
-let isDraggingFromCenter = false; // For new drag-from-center movement
-const CENTER_CIRCLE_RADIUS = 50 * MOBILE_SCALE;  // Radius of the central UI circle for interaction
+
+const CONFIG = Object.freeze({
+    MOBILE_SCALE: 0.55,
+    MAX_ENTITIES: 200,
+    PARTICLE_COUNT: 400,
+    MIN_ASTEROID_SIZE: 10,
+    INITIAL_ASTEROID_COUNT: 20,
+});
+
+// Game State
+const state = {
+    game_over: false,
+    game_paused: false,
+    score: 0,
+    timer: {},
+}
+
+const CENTER_CIRCLE_RADIUS = 50 * CONFIG.MOBILE_SCALE;  // Radius of the central UI circle for interaction
 // debug(`cw, ch: ${camera.width}, ${camera.height}`);
 const CENTER_MAXTHRUST_RADIUS = 0.5 * Math.min(camera.width, camera.height) - 8;  // Radius of the central UI circle for interaction
 const CENTER_LOWTHRUST_RADIUS = 0.5 * CENTER_MAXTHRUST_RADIUS + (0.5 * CENTER_CIRCLE_RADIUS);  // Radius of the central UI circle for interaction
-let isMouseDown = false;
-let isShootingAsteroid = false;
-let isShooting = false; // New flag to track if shooting is active
-let centerHoldStartTime = 0; // Time when pointer down started in center circle
-let isBraking = false; // Whether ship is currently in braking mode
-let brakeStartTime = 0; // Time when braking started
-let mouseX = 0;
-let mouseY = 0;
-let dialogueText = '';
-let rectangleDrawTimer = null; // legacy?
-let score = 0;
-let timer = {};
 
-const LASER_FIRE_RATE = 1000;  // 1000ms between shots
-const BULLET_FIRE_RATE = 100;  // 100ms between shots
-const MISSILE_FIRE_RATE = 500; // 500ms between shots
-const BEAM_FIRE_RATE = 800;    // 800ms between shots
-let lastLaserFireTime = 0;
-let lastBulletFireTime = 0;
-let lastMissileFireTime = 0;
-let lastBeamFireTime = 0;
+// Input State
+const input = {
+    isDraggingFromCenter: false,  // For new drag-from-center movement
+    isMouseDown: false,
+    isShootingAsteroid: false,
+    isShooting: false, // New flag to track if shooting is active
+    centerHoldStartTime: 0, // Time when pointer down started in center circle
+    isBraking: false, // Whether ship is currently in braking mode
+    brakeStartTime: 0, // Time when braking started
+}
+
+const ui = {
+    mouseX: 0,
+    mouseY: 0,
+    dialogueText: '',
+}
+let rectangleDrawTimer = null; // legacy?
+
+const player = {
+    currentWeapon: 'machineGun',
+    BULLET_FIRE_RATE: 100,  // 100ms between shots
+    MISSILE_FIRE_RATE: 500, // 500ms between shots
+    LASER_FIRE_RATE: 1000,  // 1000ms between shots
+    BEAM_FIRE_RATE: 800,    // 800ms between shots
+    lastLaserFireTime: 0,
+    lastBulletFireTime: 0,
+    lastMissileFireTime: 0,
+    lastBeamFireTime: 0,
+}
 
 const shipSVG2 = `
 <svg xmlns="http://www.w3.org/2000/svg" width="62" height="62"> <polygon points="34,12 26,30 28,32 32,30 30,32 30,32 34,30 34,32 36,32 36,30 38,32 38,32 38,30 42,32 44,32" fill=grey /> </svg>
@@ -238,15 +255,15 @@ class Ship {
 
     update(deltaTime) {
         // Handle braking if active
-        if (isBraking) {
+        if (input.isBraking) {
             const currentTime = performance.now();
-            const brakeProgress = Math.min(1, (currentTime - brakeStartTime) / 1000);
+            const brakeProgress = Math.min(1, (currentTime - input.brakeStartTime) / 1000);
 
             if (brakeProgress >= 1) {
                 // Braking completed
                 this.speed = 0;
                 this.targetSpeed = 0;
-                isBraking = false;
+                input.isBraking = false;
             } else {
                 // Gradually reduce speed based on brake progress
                 const originalSpeed = this.speed;
@@ -326,39 +343,39 @@ class Ship {
         // ctx.fillStyle = 'white';
         // ctx.fill();
         ctx.translate(-8, 0);
-        drawSVGImg(shipImg, MOBILE_SCALE * 0.7);
+        drawSVGImg(shipImg, CONFIG.MOBILE_SCALE * 0.7);
         ctx.restore();
     }
 
     shoot() {
-        if (entities.length >= MAX_ENTITIES) return;
+        if (entities.length >= CONFIG.MAX_ENTITIES) return;
 
         const currentTime = performance.now();
         let canFire = false;
 
-        switch (currentWeapon) {
+        switch (player.currentWeapon) {
             case 'laser':
-                if (currentTime - lastLaserFireTime >= LASER_FIRE_RATE) {
+                if (currentTime - player.lastLaserFireTime >= player.LASER_FIRE_RATE) {
                     canFire = true;
-                    lastLaserFireTime = currentTime;
+                    player.lastLaserFireTime = currentTime;
                 }
                 break;
             case 'machineGun':
-                if (currentTime - lastBulletFireTime >= BULLET_FIRE_RATE) {
+                if (currentTime - player.lastBulletFireTime >= player.BULLET_FIRE_RATE) {
                     canFire = true;
-                    lastBulletFireTime = currentTime;
+                    player.lastBulletFireTime = currentTime;
                 }
                 break;
             case 'missile':
-                if (currentTime - lastMissileFireTime >= MISSILE_FIRE_RATE) {
+                if (currentTime - player.lastMissileFireTime >= player.MISSILE_FIRE_RATE) {
                     canFire = true;
-                    lastMissileFireTime = currentTime;
+                    player.lastMissileFireTime = currentTime;
                 }
                 break;
             case 'beam':
-                if (currentTime - lastBeamFireTime >= BEAM_FIRE_RATE) {
+                if (currentTime - player.lastBeamFireTime >= player.BEAM_FIRE_RATE) {
                     canFire = true;
-                    lastBeamFireTime = currentTime;
+                    player.lastBeamFireTime = currentTime;
                 }
                 break;
         }
@@ -366,7 +383,7 @@ class Ship {
         if (!canFire) return;
 
         // Handle beam weapon separately since it doesn't go into projectiles array
-        if (currentWeapon === 'beam') {
+        if (player.currentWeapon === 'beam') {
             const beam = new Beam(this.x, this.y, this.angle);
             beams.push(beam);
             entities.push(beam);
@@ -374,7 +391,7 @@ class Ship {
         }
 
         let projectile;
-        switch (currentWeapon) {
+        switch (player.currentWeapon) {
             case 'laser':
                 projectile = [new Laser(this.x, this.y, this.angle)];
                 break;
@@ -471,7 +488,7 @@ class Asteroid {
     }
 
     split() {
-        if (this.radius < MIN_ASTEROID_SIZE) return [];
+        if (this.radius < CONFIG.MIN_ASTEROID_SIZE) return [];
 
         const newRadius = this.radius * 0.5;
 
@@ -644,7 +661,7 @@ class Beam {
         this.radius = 8;         // Width/radius of the beam
         this.lifespan = 200;     // How long the beam stays active (ms)
         this.createdAt = performance.now();
-        
+
         // Calculate end point of the beam
         this.endX = this.x + Math.cos(this.angle) * this.length;
         this.endY = this.y + Math.sin(this.angle) * this.length;
@@ -657,18 +674,18 @@ class Beam {
     draw() {
         // Draw the beam as a thick line
         ctx.save();
-        
+
         // Create gradient for visual effect
         const gradient = ctx.createLinearGradient(
-            this.x - cameraOffset.x, 
+            this.x - cameraOffset.x,
             this.y - cameraOffset.y,
-            this.endX - cameraOffset.x, 
+            this.endX - cameraOffset.x,
             this.endY - cameraOffset.y
         );
         gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
         gradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.6)');
         gradient.addColorStop(1, 'rgba(0, 150, 255, 0.2)');
-        
+
         ctx.beginPath();
         ctx.moveTo(this.x - cameraOffset.x, this.y - cameraOffset.y);
         ctx.lineTo(this.endX - cameraOffset.x, this.endY - cameraOffset.y);
@@ -676,7 +693,7 @@ class Beam {
         ctx.lineWidth = this.radius * 2;
         ctx.lineCap = 'round';
         ctx.stroke();
-        
+
         // Add outer glow
         ctx.beginPath();
         ctx.moveTo(this.x - cameraOffset.x, this.y - cameraOffset.y);
@@ -685,7 +702,7 @@ class Beam {
         ctx.lineWidth = this.radius * 3;
         ctx.lineCap = 'round';
         ctx.stroke();
-        
+
         ctx.restore();
     }
 
@@ -694,26 +711,26 @@ class Beam {
         // Vector from beam start to point
         const dx = px - this.x;
         const dy = py - this.y;
-        
+
         // Beam direction vector
         const beamDx = Math.cos(this.angle);
         const beamDy = Math.sin(this.angle);
-        
+
         // Project point onto beam line
         const projection = dx * beamDx + dy * beamDy;
-        
+
         // Check if projection is within beam length
         if (projection < 0 || projection > this.length) {
             return false;
         }
-        
+
         // Find closest point on beam line
         const closestX = this.x + beamDx * projection;
         const closestY = this.y + beamDy * projection;
-        
+
         // Check distance from point to closest point on line
         const distance = Math.hypot(px - closestX, py - closestY);
-        
+
         return distance <= this.radius;
     }
 }
@@ -763,7 +780,7 @@ class Dialogue {
         this.textColor = 'hsl(57, 100%, 83%)';
 
         // Calculate text position for centering
-        this.textWidth = ctx.measureText(dialogueText).width;
+        this.textWidth = ctx.measureText(ui.dialogueText).width;
         this.textHeight = this.fontSize; // Extract font size
         this.x = camera.width / 2;
         this.y = camera.height / 2;
@@ -779,7 +796,7 @@ class Dialogue {
 
     draw() {
         // draw the dialogue and text
-        if (GAME_OVER === false && dialogueText.length < 1) {
+        if (state.game_over === false && ui.dialogueText.length < 1) {
             return;
         }
         ctx.font = `bold ${this.fontSize}px sans-serif`;
@@ -792,7 +809,7 @@ class Dialogue {
 
         this.drawRoundedRectangle(this.rectX, this.rectY, this.rectWidth, this.rectHeight);
 
-        this.drawText(this.x, camera.height * 0.45, dialogueText);
+        this.drawText(this.x, camera.height * 0.45, ui.dialogueText);
     }
 
     // would be easier
@@ -822,7 +839,7 @@ class Dialogue {
     }
 
     update(deltaTime) {
-        if (GAME_OVER === false && dialogueText.length < 1) {
+        if (state.game_over === false && ui.dialogueText.length < 1) {
             return;
         }
         // message.innerText = (deltaTime + "").substring(0, 2);
@@ -842,8 +859,8 @@ class Dialogue {
 
 function spawnInitialAsteroids() {
     console.log('spawnInitialAsteroids');
-    for (let i = 0; i < INITIAL_ASTEROID_COUNT; i++) {
-        if (entities.length < MAX_ENTITIES) {
+    for (let i = 0; i < CONFIG.INITIAL_ASTEROID_COUNT; i++) {
+        if (entities.length < CONFIG.MAX_ENTITIES) {
             const asteroid = new Asteroid();
             asteroids.push(asteroid);
             entities.push(asteroid);
@@ -853,13 +870,13 @@ function spawnInitialAsteroids() {
 }
 
 function createParticles() {
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
+    for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
         particles.push(new Particle());
     }
 }
 
 function handleCollisions() {
-    if (GAME_OVER) {
+    if (state.game_over) {
         return;
     }
     for (let i = 0; i < asteroids.length; i++) {
@@ -871,8 +888,8 @@ function handleCollisions() {
             const distance = Math.hypot(projectile.x - asteroid.x, projectile.y - asteroid.y);
 
             if (distance < asteroid.radius + projectile.radius) {
-                score++;
-                message.innerText = score;
+                state.score++;
+                message.innerText = state.score;
                 // Calculate new velocities based on conservation of momentum and energy
                 const totalMass = asteroid.mass + projectile.mass;
                 const newVelocityX = (asteroid.mass * asteroid.velocityX + projectile.mass * Math.cos(projectile.angle) * projectile.speed) / totalMass;
@@ -904,33 +921,33 @@ function handleCollisions() {
         // Check collision with beams
         for (let k = 0; k < beams.length; k++) {
             const beam = beams[k];
-            
+
             // Check if asteroid (including its edges) intersects with beam
             // Vector from beam start to asteroid center
             const dx = asteroid.x - beam.x;
             const dy = asteroid.y - beam.y;
-            
+
             // Beam direction vector
             const beamDx = Math.cos(beam.angle);
             const beamDy = Math.sin(beam.angle);
-            
+
             // Project asteroid center onto beam line
             const projection = dx * beamDx + dy * beamDy;
-            
+
             // Clamp projection to beam length
             const clampedProjection = Math.max(0, Math.min(projection, beam.length));
-            
+
             // Find closest point on beam line to asteroid center
             const closestX = beam.x + beamDx * clampedProjection;
             const closestY = beam.y + beamDy * clampedProjection;
-            
+
             // Check distance from asteroid center to closest point on beam
             const distance = Math.hypot(asteroid.x - closestX, asteroid.y - closestY);
-            
+
             // Collision if distance is less than asteroid radius plus beam radius
             if (distance <= asteroid.radius + beam.radius) {
-                score++;
-                message.innerText = score;
+                state.score++;
+                message.innerText = state.score;
 
                 // Split the asteroid
                 const newAsteroids = asteroid.split();
@@ -955,17 +972,17 @@ function handleCollisions() {
         const shipDistance = Math.hypot(ship.x - asteroid.x, ship.y - asteroid.y);
         if (shipDistance < asteroid.radius + ship.radius) {
             // Game over logic
-            GAME_OVER = true;
+            state.game_over = true;
 
             // Stop the timer when game over
-            if (timer.interval) {
-                clearInterval(timer.interval);
-                message.innerText = `${score} | GAME OVER`;
+            if (state.timer.interval) {
+                clearInterval(state.timer.interval);
+                message.innerText = `${state.score} | GAME OVER`;
             }
 
             clearEntities();
             console.log("Game over!");
-            dialogueText = "Game Over!";
+            ui.dialogueText = "Game Over!";
         }
     }
 }
@@ -1096,7 +1113,7 @@ function gameLoop(timestamp) {
     ctx.clearRect(0, 0, camera.width, camera.height);
 
     // ===== UPDATE PHASE (skip if paused) =====
-    if (!GAME_PAUSED) {
+    if (!state.game_paused) {
         // Update contrails to remove expired points
         ship.contrail.update();
         mouseContrail.update();
@@ -1107,7 +1124,7 @@ function gameLoop(timestamp) {
         });
 
         // Update ship
-        if (isShooting) {
+        if (input.isShooting) {
             ship.shoot();
         }
         ship.update(deltaTime);
@@ -1144,13 +1161,13 @@ function gameLoop(timestamp) {
         dialogue.update(deltaTime);
 
         // Handle braking logic (if dragging from center)
-        if (isDraggingFromCenter && isMouseDown) {
+        if (input.isDraggingFromCenter && input.isMouseDown) {
             const currentTime = performance.now();
-            if (centerHoldStartTime > 0 &&
-                currentTime - centerHoldStartTime >= 600 &&
-                !isBraking) {
-                isBraking = true;
-                brakeStartTime = currentTime;
+            if (input.centerHoldStartTime > 0 &&
+                currentTime - input.centerHoldStartTime >= 600 &&
+                !input.isBraking) {
+                input.isBraking = true;
+                input.brakeStartTime = currentTime;
                 console.log('Brake initiated');
             }
         }
@@ -1196,14 +1213,14 @@ function gameLoop(timestamp) {
     drawCenterCircle(CENTER_MAXTHRUST_RADIUS);
 
     // Draw visual feedback line if dragging from center
-    if (isDraggingFromCenter && isMouseDown) {
+    if (input.isDraggingFromCenter && input.isMouseDown) {
         const currentTime = performance.now();
 
         drawDragFromCenterLine();
 
         // Visual feedback for braking
-        if (isBraking) {
-            const brakeProgress = Math.min(1, (currentTime - brakeStartTime) / 1000);
+        if (input.isBraking) {
+            const brakeProgress = Math.min(1, (currentTime - input.brakeStartTime) / 1000);
             drawBrakingEffect(brakeProgress);
         }
     }
@@ -1212,15 +1229,15 @@ function gameLoop(timestamp) {
     dialogue.draw();
 
     // Draw cursor
-    const isOverAsteroid = isPointOverAsteroid(mouseX, mouseY);
+    const isOverAsteroid = isPointOverAsteroid(ui.mouseX, ui.mouseY);
 
     if (isOverAsteroid) {
         const squareSize = 22;
         ctx.strokeStyle = 'yellow';
         ctx.lineWidth = 1;
         ctx.strokeRect(
-            mouseX - squareSize / 2,
-            mouseY - squareSize / 2,
+            ui.mouseX - squareSize / 2,
+            ui.mouseY - squareSize / 2,
             squareSize,
             squareSize
         );
@@ -1234,7 +1251,7 @@ function gameLoop(timestamp) {
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(camera.width / 2, camera.height / 2); // Start from center of camera
-        ctx.lineTo(mouseX, mouseY); // End at current mouse position
+        ctx.lineTo(ui.mouseX, ui.mouseY); // End at current mouse position
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -1296,42 +1313,42 @@ const mouseContrail = {
 
 function handlePointerDown(event) {
     // type of click: mouseDown
-    isMouseDown = true;
+    input.isMouseDown = true;
 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    mouseX = (event.clientX - rect.left) * scaleX;
-    mouseY = (event.clientY - rect.top) * scaleY;
+    ui.mouseX = (event.clientX - rect.left) * scaleX;
+    ui.mouseY = (event.clientY - rect.top) * scaleY;
 
     const centerCircleX = camera.width / 2;
     const centerCircleY = camera.height / 2;
-    const distToCenter = Math.hypot(mouseX - centerCircleX, mouseY - centerCircleY);
+    const distToCenter = Math.hypot(ui.mouseX - centerCircleX, ui.mouseY - centerCircleY);
     const isInCenterCircle = (distToCenter <= CENTER_CIRCLE_RADIUS);
 
     // location of click: center circle
     if (isInCenterCircle) {
-        isDraggingFromCenter = true;
-        centerHoldStartTime = performance.now(); // Record the time when center hold started
+        input.isDraggingFromCenter = true;
+        input.centerHoldStartTime = performance.now(); // Record the time when center hold started
     } else {
-        isDraggingFromCenter = false; // Click is outside the center circle
-        centerHoldStartTime = 0; // Reset center hold time
+        input.isDraggingFromCenter = false; // Click is outside the center circle
+        input.centerHoldStartTime = 0; // Reset center hold time
 
 
     }
 
     // Add point to contrail
-    mouseContrail.addPoint(mouseX, mouseY);
+    mouseContrail.addPoint(ui.mouseX, ui.mouseY);
 
     console.log('pointer down');
 
-    if (GAME_OVER && isUIButtonClicked(resetBtnSize)) { // if GameOver & reset btn clicked
+    if (state.game_over && isUIButtonClicked(resetBtnSize)) { // if GameOver & reset btn clicked
         // reset game
         console.log('RESET Game');
         console.log('GOOD isUIButtonClicked...', isUIButtonClicked(resetBtnSize));
-        GAME_OVER = false;
-        dialogueText = ''; // Clear the dialogue text
+        state.game_over = false;
+        ui.dialogueText = ''; // Clear the dialogue text
         initGame(); // This does not reset all of the game, such as Asteroids and Dust
         // Clear all entities and respawn asteroids
         asteroids = [];
@@ -1341,23 +1358,23 @@ function handlePointerDown(event) {
         spawnInitialAsteroids();
     }
 
-    if (!GAME_OVER && isUIButtonClicked(actionBtnSize)) {
+    if (!state.game_over && isUIButtonClicked(actionBtnSize)) {
         // do stuff like shoot or change weapons
-        switch (currentWeapon) {
+        switch (player.currentWeapon) {
             case 'laser':
-                currentWeapon = 'machineGun';
+                player.currentWeapon = 'machineGun';
                 // weaponButton.textContent = '🔫';
                 break;
             case 'machineGun':
-                currentWeapon = 'missile';
+                player.currentWeapon = 'missile';
                 // weaponButton.textContent = '🚀';
                 break;
             case 'missile':
-                currentWeapon = 'beam';
+                player.currentWeapon = 'beam';
                 // weaponButton.textContent = '⚡';
                 break;
             case 'beam':
-                currentWeapon = 'laser';
+                player.currentWeapon = 'laser';
                 // weaponButton.textContent = '🔦';
                 break;
         }
@@ -1365,23 +1382,23 @@ function handlePointerDown(event) {
     }
 
     // Handle pause button click
-    if (!GAME_OVER && isUIButtonClicked(pauseBtnSize)) {
-        GAME_PAUSED = !GAME_PAUSED;
-        console.log('Game paused:', GAME_PAUSED);
+    if (!state.game_over && isUIButtonClicked(pauseBtnSize)) {
+        state.game_paused = !state.game_paused;
+        console.log('Game paused:', state.game_paused);
     }
 
     const asteroidClicked = asteroids.some(asteroid => {
         const screenX = asteroid.x - cameraOffset.x;
         const screenY = asteroid.y - cameraOffset.y;
-        const distance = Math.hypot(mouseX - screenX, mouseY - screenY);
+        const distance = Math.hypot(ui.mouseX - screenX, ui.mouseY - screenY);
         return distance <= asteroid.radius;
     });
 
     // Start shooting if pointer is outside center circle
-    if (!GAME_OVER && !isInCenterCircle && !isUIButtonClicked(actionBtnSize)) {
+    if (!state.game_over && !isInCenterCircle && !isUIButtonClicked(actionBtnSize)) {
         // Rotate ship to face mouse position before shooting
-        isShooting = true;
-        ship.setRotation(mouseX, mouseY);
+        input.isShooting = true;
+        ship.setRotation(ui.mouseX, ui.mouseY);
     }
 
 }
@@ -1390,31 +1407,31 @@ function handlePointerMove(event) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    mouseX = (event.clientX - rect.left) * scaleX;
-    mouseY = (event.clientY - rect.top) * scaleY;
+    ui.mouseX = (event.clientX - rect.left) * scaleX;
+    ui.mouseY = (event.clientY - rect.top) * scaleY;
 
     // Check if pointer is still within canvas bounds
-    const isWithinCanvas = mouseX >= 0 && mouseX <= canvas.width && mouseY >= 0 && mouseY <= canvas.height;
+    const isWithinCanvas = ui.mouseX >= 0 && ui.mouseX <= canvas.width && ui.mouseY >= 0 && ui.mouseY <= canvas.height;
 
     // If shooting is active and mouse is still down and within canvas
-    if (isShooting && isMouseDown && isWithinCanvas && !GAME_OVER) {
+    if (input.isShooting && input.isMouseDown && isWithinCanvas && !state.game_over) {
         const centerCircleX = camera.width / 2;
         const centerCircleY = camera.height / 2;
-        const distToCenter = Math.hypot(mouseX - centerCircleX, mouseY - centerCircleY);
+        const distToCenter = Math.hypot(ui.mouseX - centerCircleX, ui.mouseY - centerCircleY);
         const isOutsideCenterCircle = (distToCenter > CENTER_CIRCLE_RADIUS);
 
         // Continue shooting if outside center circle
         if (isOutsideCenterCircle) {
-            ship.setRotation(mouseX, mouseY);  // Rotate ship to face mouse position before shooting
+            ship.setRotation(ui.mouseX, ui.mouseY);  // Rotate ship to face mouse position before shooting
             // ship.shoot();
         } else {
             // If moved back into center circle, stop shooting
-            isShooting = false;
+            input.isShooting = false;
         }
     }
 
     // Add point to contrail
-    mouseContrail.addPoint(mouseX, mouseY);
+    mouseContrail.addPoint(ui.mouseX, ui.mouseY);
 
     // REMOVED: This block is removed to disable drag-anywhere-to-move
     // if (isMouseDown && !GAME_OVER && !isShootingAsteroid && !isUIButtonClicked(actionBtnSize)) {
@@ -1426,19 +1443,19 @@ function handlePointerMove(event) {
 }
 
 function handlePointerUp() {
-    if (isDraggingFromCenter) {
+    if (input.isDraggingFromCenter) {
         // Only set new target if we're not in braking mode
-        if (!isBraking) {
-            ship.setTarget(mouseX, mouseY); // Use current mouseX, mouseY (screen coords) as target
+        if (!input.isBraking) {
+            ship.setTarget(ui.mouseX, ui.mouseY); // Use current mouseX, mouseY (screen coords) as target
         }
-        isDraggingFromCenter = false; // Reset the flag
+        input.isDraggingFromCenter = false; // Reset the flag
     }
 
     // Stop shooting when pointer is released
-    isShooting = false;
+    input.isShooting = false;
 
-    isMouseDown = false;
-    centerHoldStartTime = 0; // Reset center hold time when pointer is released
+    input.isMouseDown = false;
+    input.centerHoldStartTime = 0; // Reset center hold time when pointer is released
     console.log('pointer up');
 }
 
@@ -1448,7 +1465,7 @@ function drawCursorDot(isOverAsteroid) {
 
     // Then draw the cursor dot
     ctx.beginPath();
-    ctx.rect(mouseX - 3, mouseY - 3, 6, 6);
+    ctx.rect(ui.mouseX - 3, ui.mouseY - 3, 6, 6);
     ctx.fillStyle = isOverAsteroid ? 'yellow' : 'white';
     ctx.fill();
     ctx.closePath();
@@ -1465,9 +1482,9 @@ function clearEntities() {
 }
 
 function initGame() {
-    score = 0;
+    state.score = 0;
     startTimer(5);
-    message.innerText = score;
+    message.innerText = state.score;
     dialogue = new Dialogue();
     entities.push(dialogue);
     ship = new Ship();
@@ -1554,7 +1571,7 @@ function checkBoundsRect(point, rect) {
 function isUIButtonClicked(buttonSize) {
     // mouseX and mouseY are in gameCameraCoords
     // buttonSize Width and Height also needs button position to be in gameCameraCoords
-    let point = { x: mouseX, y: mouseY };
+    let point = { x: ui.mouseX, y: ui.mouseY };
     let rect = { x: buttonSize.buttonPosX, y: buttonSize.buttonPosY, w: buttonSize.buttonWidth, h: buttonSize.buttonHeight };
     let isInBounds = checkBoundsRect(point, rect);
 
@@ -1732,27 +1749,27 @@ function drawCenterCircle(radius) {
 }
 
 function startTimer(durationMins) {
-    timer.startTime = Date.now(); // in milliseconds
-    timer.duration = durationMins * 60 * 1000; // x minutes in ms
-    timer.timerExpired = false;
+    state.timer.startTime = Date.now(); // in milliseconds
+    state.timer.duration = durationMins * 60 * 1000; // x minutes in ms
+    state.timer.timerExpired = false;
 
     // Start a timer that updates every second to show score and remaining time
-    if (timer.interval) {
-        clearInterval(timer.interval);
+    if (state.timer.interval) {
+        clearInterval(state.timer.interval);
     }
 
-    timer.interval = setInterval(() => {
+    state.timer.interval = setInterval(() => {
         if (!isTimerExpired()) {
             // Update the message with score and timer
             const timeFormatted = checkTimer();
-            message.innerText = `${score} | Timer: ${timeFormatted}`;
+            message.innerText = `${state.score} | Timer: ${timeFormatted}`;
         }
     }, 1000); // Update every second
 }
 
 function checkTimer() {
-    const elapsed = Date.now() - timer.startTime;
-    const remaining = Math.max(0, timer.duration - elapsed);
+    const elapsed = Date.now() - state.timer.startTime;
+    const remaining = Math.max(0, state.timer.duration - elapsed);
 
     // Format remaining time
     const mins = Math.floor(remaining / 60000);
@@ -1765,23 +1782,23 @@ function checkTimer() {
 
 function isTimerExpired() {
     // Always consider timer expired if game is over
-    if (GAME_OVER) {
+    if (state.game_over) {
         return true;
     }
 
     // Calculate elapsed time
-    const elapsed = Date.now() - timer.startTime;
+    const elapsed = Date.now() - state.timer.startTime;
 
     // Check if timer has expired
-    if (!timer.timerExpired && elapsed >= timer.duration) {
-        timer.timerExpired = true;
+    if (!state.timer.timerExpired && elapsed >= state.timer.duration) {
+        state.timer.timerExpired = true;
         // Clear our interval when the timer expires
-        if (timer.interval) {
-            clearInterval(timer.interval);
+        if (state.timer.interval) {
+            clearInterval(state.timer.interval);
         }
         console.log("Timer expired! Perform your action here.");
         // Final update of the message when timer expires
-        message.innerText = `GAME OVER | Final Score: ${score}`;
+        message.innerText = `GAME OVER | Final Score: ${state.score}`;
         return true;
     }
 
