@@ -1069,41 +1069,56 @@ function drawMiniMap() {
 
 const actionBtnSize = {
     // button dimensions
-    buttonWidth: ((camera.width < 800) ? camera.width * 0.2 : camera.width * 0.1),
-    buttonHeight: camera.height * 0.1,
+    width: ((camera.width < 800) ? camera.width * 0.2 : camera.width * 0.1),
+    height: camera.height * 0.1,
     // Calculate rectangle position in bottom left corner
-    buttonPosX: 10,
-    buttonPosY: camera.height - (camera.height * 0.1 + 10),
-    // getButtonY : () => {
-    //   return height - (height * 0.1 + 10);
-    // }
+    posX: 10,
+    posY: camera.height - (camera.height * 0.1 + 10),
 }
 
 const pauseBtnSize = {
     // button dimensions - same size as action button
-    buttonWidth: ((camera.width < 800) ? camera.width * 0.2 : camera.width * 0.1),
-    buttonHeight: camera.height * 0.1,
+    width: ((camera.width < 800) ? camera.width * 0.2 : camera.width * 0.1),
+    height: camera.height * 0.1,
     // Position 10px above the action button
-    buttonPosX: 10,
-    buttonPosY: camera.height - (camera.height * 0.1 + 10) - (camera.height * 0.1 + 10),
+    posX: 10,
+    posY: camera.height - (camera.height * 0.1 + 10) - (camera.height * 0.1 + 10),
+}
+
+const pauseBtnIcon = {
+    // icon dimensions
+    width: CENTER_CIRCLE_RADIUS * 0.5,
+    height: CENTER_CIRCLE_RADIUS,
+    // icon position
+    posX: pauseBtnSize.posX + 10,
+    posY: pauseBtnSize.posY + 10,
+}
+
+function drawPauseIcon() {
+    drawRectangle(pauseBtnIcon);
+    drawRectangle(pauseBtnIcon, { x: CENTER_CIRCLE_RADIUS * 0.76, y: 0 });
 }
 
 const resetBtnSize = {
     // button dimensions
-    buttonWidth: camera.width * 0.25, // rectWidth * 0.5 (half of camera.width * 0.5)
-    buttonHeight: camera.height * 0.09, // rectHeight * 0.3 (30% of camera.height * 0.3)
+    width: camera.width * 0.25, // rectWidth * 0.5 (half of camera.width * 0.5)
+    height: camera.height * 0.09, // rectHeight * 0.3 (30% of camera.height * 0.3)
     // Position to match the dialogue's drawing position
-    buttonPosX: camera.width / 2 - (camera.width * 0.25) / 2, // Center horizontally
-    buttonPosY: camera.height / 2 + camera.height * 0.07 - camera.height * 0.045, // Center vertically with text offset
+    posX: camera.width / 2 - (camera.width * 0.25) / 2, // Center horizontally
+    posY: camera.height / 2 + camera.height * 0.07 - camera.height * 0.045, // Center vertically with text offset
 };
 
-function drawButton(buttonSize) {
+function drawRectangle(buttonSize, offset = { x: 0, y: 0 }, colour) {
+
+    let fill = colour || 'hsla(320, 100%, 83%, 0.50)';
     // Stroke style
+    ctx.fillStyle = fill;
     ctx.strokeStyle = 'pink';
     ctx.lineWidth = 2;
-
+    // Draw the rectangle fill
+    ctx.fillRect(buttonSize.posX + offset.x, buttonSize.posY + offset.y, buttonSize.width, buttonSize.height);
     // Draw the rectangle stroke
-    ctx.strokeRect(buttonSize.buttonPosX, buttonSize.buttonPosY, buttonSize.buttonWidth, buttonSize.buttonHeight);
+    ctx.strokeRect(buttonSize.posX + offset.x, buttonSize.posY + offset.y, buttonSize.width, buttonSize.height);
 }
 
 let lastTime = 0;
@@ -1207,8 +1222,10 @@ function gameLoop(timestamp) {
 
     // Draw the UI elements last, so they appear on top
     drawMiniMap();
-    drawButton(actionBtnSize);
-    drawButton(pauseBtnSize);
+    drawRectangle(actionBtnSize, { x: 0, y: 0 }, 'hsla(64, 100%, 82%, 0.5)');
+    drawRectangle(pauseBtnSize);
+    drawPauseIcon(pauseBtnIcon);
+
     drawCenterCircle(CENTER_CIRCLE_RADIUS);
     drawCenterCircle(CENTER_LOWTHRUST_RADIUS);
     drawCenterCircle(CENTER_MAXTHRUST_RADIUS);
@@ -1573,10 +1590,10 @@ function isUIButtonClicked(buttonSize) {
     // mouseX and mouseY are in gameCameraCoords
     // buttonSize Width and Height also needs button position to be in gameCameraCoords
     let point = { x: ui.mouseX, y: ui.mouseY };
-    let rect = { x: buttonSize.buttonPosX, y: buttonSize.buttonPosY, w: buttonSize.buttonWidth, h: buttonSize.buttonHeight };
+    let rect = { x: buttonSize.posX, y: buttonSize.posY, w: buttonSize.width, h: buttonSize.height };
     let isInBounds = checkBoundsRect(point, rect);
 
-    // console.log(`x${mouseX} y${mouseY} px${buttonSize.buttonPosX} py${buttonSize.buttonPosY} bw${buttonSize.buttonWidth} bh${buttonSize.buttonHeight}`);
+    // console.log(`x${mouseX} y${mouseY} px${buttonSize.posX} py${buttonSize.posY} bw${buttonSize.width} bh${buttonSize.height}`);
     return (isInBounds);
 }
 
@@ -1736,7 +1753,6 @@ function drawSVGImg(img, scale = 1) {
 function drawCenterCircle(radius) {
     const centerX = camera.width / 2;
     const centerY = camera.height / 2;
-    // const radius = 50; // Size of the circle - now using global CENTER_CIRCLE_RADIUS
 
     ctx.save();
     ctx.beginPath();
