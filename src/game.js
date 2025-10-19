@@ -416,8 +416,8 @@ class Asteroid {
         this.x = x || randomMinMax(10, world.width - 100);
         this.y = y || randomMinMax(10, world.height - 100);
         this.radius = radius || randomMinMax(30, 45);
-        this.velocityX = (randomMinMax(10, 20)) * 2;
-        this.velocityY = (randomMinMax(10, 20)) * 2;
+        this.velocityX = (randomMinMax(2, 20)) * 2;
+        this.velocityY = (randomMinMax(2, 20)) * 2;
         // color in HSL (degrees, percentage, percentage)
         this.hue = randomMinMax(10, 30); // + 340
         this.saturation = randomMinMax(50, 90);
@@ -463,12 +463,10 @@ class Asteroid {
 
     update(deltaTime) {
         // deltaTime means time between frames
-        // this.x += this.velocityX * deltaTime / 1000;
-        // this.y += this.velocityY * deltaTime / 1000;
 
         // update asteroid position relative to world?
-        this.x -= (this.velocityX * deltaTime / 1000); //  - ship.velocityX
-        this.y -= (this.velocityY * deltaTime / 1000); //  - ship.velocityY
+        this.x -= (this.velocityX * deltaTime / 1000);
+        this.y -= (this.velocityY * deltaTime / 1000);
 
         // Update rotation angle based on rotation speed and deltaTime
         this.rotationAngle += this.rotationSpeed * deltaTime / 1000;
@@ -480,6 +478,7 @@ class Asteroid {
             this.rotationAngle += Math.PI * 2;
         }
 
+        // keep asteroid bound to world
         if (this.x < 0 || this.x > world.width) this.velocityX *= -1;
         if (this.y < 0 || this.y > world.height) this.velocityY *= -1;
 
@@ -498,10 +497,10 @@ class Asteroid {
         const newAsteroid2 = new Asteroid(this.x, this.y, newRadius);
 
         // Increase rotation speed of the new asteroids (1.5-2.5 times faster)
-        const speedMultiplier1 = randomMinMax(2, 5);
+        const rotationalSpeedChangeAmt = randomMinMax(2, 5);
 
-        newAsteroid1.rotationSpeed = this.rotationSpeed * speedMultiplier1;
-        newAsteroid2.rotationSpeed = this.rotationSpeed * speedMultiplier1;
+        newAsteroid1.rotationSpeed = this.rotationSpeed * rotationalSpeedChangeAmt;
+        newAsteroid2.rotationSpeed = this.rotationSpeed * rotationalSpeedChangeAmt;
 
         // Add new asteroids directly to the arrays
         asteroids.push(newAsteroid1, newAsteroid2);
@@ -748,12 +747,9 @@ class Particle {
     }
 
     update(deltaTime) {
-        // update asteroid position relative to world?
-        this.x -= (this.speedX * deltaTime / 1000); //  - ship.velocityX
-        this.y -= (this.speedY * deltaTime / 1000); //  - ship.velocityY
-
-        // this.x -= this.speedX - ship.velocityX;
-        // this.y -= this.speedY - ship.velocityY;
+        // update particle position relative to world
+        this.x -= (this.speedX * deltaTime / 1000);
+        this.y -= (this.speedY * deltaTime / 1000);
 
         if (this.x < 0) this.x = world.width;
         if (this.x > world.width) this.x = 0;
