@@ -465,8 +465,8 @@ class Asteroid {
         // deltaTime means time between frames
 
         // update asteroid position relative to world?
-        this.x -= (this.velocityX * deltaTime / 1000);
-        this.y -= (this.velocityY * deltaTime / 1000);
+        this.x += (this.velocityX * deltaTime / 1000);
+        this.y += (this.velocityY * deltaTime / 1000);
 
         // Update rotation angle based on rotation speed and deltaTime
         this.rotationAngle += this.rotationSpeed * deltaTime / 1000;
@@ -1083,16 +1083,104 @@ function checkShipAsteroidCollisions() {
 }
 
 /**
+ * Check collisions between asteroids and handle bouncing
+ */
+function checkAsteroidAsteroidCollisions() {
+    // Check each pair of asteroids only once
+    for (let i = 0; i < asteroids.length - 1; i++) {
+        for (let j = i + 1; j < asteroids.length; j++) {
+            const asteroid1 = asteroids[i];
+            const asteroid2 = asteroids[j];
+
+            if (checkCircleCollision(
+                asteroid1.x, asteroid1.y, asteroid1.radius,
+                asteroid2.x, asteroid2.y, asteroid2.radius
+            )) {
+                handleAsteroidAsteroidCollision(asteroid1, asteroid2);
+            }
+        }
+    }
+}
+
+
+/**
+ * Handle asteroid-asteroid collision with proper physics
+ * @param {Object} a - First asteroid
+ * @param {Object} b - Second asteroid
+ */
+function handleAsteroidAsteroidCollision(a, b) {
+    // Calculate direction from a to b
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const distance = Math.hypot(dx, dy);
+
+    // Avoid division by zero
+    if (distance === 0) return;
+
+    // Normalize direction vector
+    const nx = dx / distance;
+    const ny = dy / distance;
+
+    // Calculate relative velocity
+    const vx = b.velocityX - a.velocityX;
+    const vy = b.velocityY - a.velocityY;
+
+    // Calculate relative velocity in terms of the normal direction
+    const velocityAlongNormal = vx * nx + vy * ny;
+
+    // Do not resolve if objects are moving away from each other
+    if (velocityAlongNormal > 0) return;
+
+    // Calculate restitution (bounciness)
+    const restitution = 0.8;
+
+    // Calculate impulse scalar
+    const totalMass = a.mass + b.mass;
+    const j = -(1 + restitution) * velocityAlongNormal / (1 / a.mass + 1 / b.mass);
+
+    // Apply impulse
+    const impulseX = j * nx;
+    const impulseY = j * ny;
+
+    // Update velocities with impulse
+    a.velocityX -= impulseX / a.mass;
+    a.velocityY -= impulseY / a.mass;
+    b.velocityX += impulseX / b.mass;
+    b.velocityY += impulseY / b.mass;
+
+    // Separate asteroids to prevent overlap
+    const overlap = (a.radius + b.radius - distance) * 0.5;
+    if (overlap > 0) {
+        // Move each asteroid away by half the overlap
+        const moveX = nx * overlap;
+        const moveY = ny * overlap;
+
+        // Move the asteroids apart based on their mass ratio
+        const ratioA = b.mass / totalMass;
+        const ratioB = a.mass / totalMass;
+
+        a.x -= moveX * ratioA;
+        a.y -= moveY * ratioA;
+        b.x += moveX * ratioB;
+        b.y += moveY * ratioB;
+    }
+}
+
+
+
+
+/**
  * Main collision handler - orchestrates all collision checks
  */
 function handleCollisions() {
-    if (state.game_over) {
+    if (state.game_paused) {
         return;
     }
 
     checkProjectileAsteroidCollisions();
     checkBeamAsteroidCollisions();
     checkShipAsteroidCollisions();
+    checkAsteroidAsteroidCollisions();
 }
 
 
