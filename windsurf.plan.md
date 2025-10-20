@@ -369,3 +369,57 @@ Static web hosting
 //DONE: mouse position fixes
 //DONE: ship/mouse alignment. center of ship appears about 15px left or mouse.
 //DONE: draw mouse cursor crosshair in canvas instead of CSS?
+
+Todo: Code (Game)
+Priority: intuitive movement mechanics, ui to indicate selected weapon, and what buttons do (choose thrust button, or rts style select to move (move mode vs fire mode)?) UI/UX
+Entities - planets, warp exit, (Levels, objectives)
+Objectives - destroy enemies, get to destination/pickup tools
+Controls - additional buttons [pause, thrust {fine control?}, dash (through soft enemies), brake] - Layout? push/pull, grapple/tow, juggle, ride
+Controls - tap to slow, double tap to stop ?
+Controls - smoother control of speeds
+make first weapon bullets
+resources to collect ($$$ / rings / salvage)
+Obstacles/forces - solar winds, shockwaves, fast asteroids, spinning turret beams, lava flood/wave, solar flare, destructable objects, ice geysers, 
+Limits - fuel, ammo, health, life support? food?
+Slower speed, reduce collision dmg with asteroids?
+Entities - heavy and light objects that can be pushed and pulled around (additional properties, like heat resistant/shielding, light obscuring, absorb enemy shots, obscure enemy vision)
+Entities - configurable JSON (i.e. can have health, weight, direction, speed, isExplosive, drops[array], aggroRadius, attractTo: player, friendlyFire, patrolPath, patrolZone, attackTypes[move, shoot, missile, areaAttack], homingArc, heat, heatResistance, cold, coldResistance, hearingRadius, coolDown, evasionStrategy[avoidsClose, trysToGetClose], solarPowered, energy)
+Entities - exploding barrels/fuel tanks
+Entities - enemy mines (radius drift toward player) & drone turrets
+Enemy - zones or patrol paths they are unlikely to leave (gravity?)
+Enemy - wall of spikes like attack/enemy you need to dash to dodge
+Enemy - fast weak charging enemy
+Enemy - large enemy that tries to chomp you
+Enemy - boss fights, telegraphed attacks, timed weak spots
+Interesting enemies (drift mines, stationary drone, missile , enemy fighters)
+Transferable, combinable properties/mechanics
+Controls - virtual joystick
+Entities - destinations (planets, stations, warp gates)
+Player - health to take more hits OR asteroids less dangerous?
+Player - shields / placeable shield wall, player & asteroid bounce physics
+Player - after taking dmg, no new dmg for 30ms
+Header - "gameover" does not need to display in header.
+Menus - on gameover screen show last top 5 scores
+Asteroids - split too small (too dangerous, too hard?) - smallest chunks should be a resource$$$
+PUZZLES? weapon A most effective against enemy A, strategy B against enemy B, scan to reveal hidden things, lure enemies (hit bell), borrow an enemies ability, tie an object to another, be towed by an entity, set trap, hack/control entity, enemy that is only visible every 2 seconds?, reflect enemy shots back at them, carry things, push/pull things, open doors, levers, objects that can act like keys,
+STRATEGIES? shoot weakpoints, push something heavy into enemy, right weapon for job, provoke enemy C against enemy D,
+TOOLS? magic like tools? build limit break attack, push/dodge/teleport,
+
+Bug: copy of dust particles frozen in lower right corner sometimes
+Entities - Stationary enemy that shoots in your direction , enemy alertness range, enemy that deploys a wall, enemy that can push, enemy telegraphs a charge, enemy with weakness at back
+Entities - enemy drones/types/ mining
+Controls - Brake animation occurs too late
+Level goal, fly to X / destroy 2 asteroids / take a to b (pick up items) /
+Animation - ship thrusters should take 30ms to get to set power,
+Add pinball bumpers, paddles and ramps/curves? Spinning stations act as paddles? Or vortexes?
+Have three onscreen buttons (next item, use item, grab/throw)
+Shoot could slow/push asteroid momentum
+Zoom out view out at higher speeds
+FX - Fatter contrail / double contrail
+Count moves/fuel use
+Entities - Asteroids drop power ups (points, fuel, ammo, weapons, portal, grappling hook link)
+Weapons - more unique as tools, rail through objects, rockets area of effect
+As a Mining ship could grab/push/throw asteroids to refinery. Grab could act like a shield
+Zoom camera out with speed? All distances would need to be scaled by a multiplier . Too fast on mobile
+Controls - game: slowmo, interact
+NOTES - SCAMPER: indie game clinic , secrets, environmental storytelling
