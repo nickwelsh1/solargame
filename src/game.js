@@ -1201,46 +1201,47 @@ function checkAsteroidPlanetCollisions() {
         const planet = planets[j];
         for (let i = 0; i < asteroids.length; i++) {
             const asteroid = asteroids[i];
-            const dx = planet.x - asteroid.x;
-            const dy = planet.y - asteroid.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Calculate direction from planet to asteroid (normal points away from planet)
+            const dx = asteroid.x - planet.x;
+            const dy = asteroid.y - planet.y;
+            const distance = Math.hypot(dx, dy);
 
             // Check if asteroid is colliding with planet
             if (distance < asteroid.radius + planet.radius) {
-                // Calculate normal vector from planet to asteroid
+                // Avoid division by zero
+                if (distance === 0) continue;
+
+                // Normalize direction vector
                 const nx = dx / distance;
                 const ny = dy / distance;
 
-                // Calculate relative velocity (planet is immovable, so it's just asteroid's velocity)
-                const relativeVelocity = {
-                    x: asteroid.velocityX,
-                    y: asteroid.velocityY
-                };
-
                 // Calculate velocity along the normal
-                const velocityAlongNormal = relativeVelocity.x * nx + relativeVelocity.y * ny;
+                // (planet is immovable, so relative velocity is just asteroid's velocity)
+                const velocityAlongNormal = asteroid.velocityX * nx + asteroid.velocityY * ny;
 
-                // Only resolve if objects are moving towards each other
+                // Do not resolve if asteroid is moving away from planet
                 if (velocityAlongNormal > 0) continue;
 
-                // Calculate impulse scalar (simple bounce with some energy loss)
-                const restitution = 0.7; // Bounciness factor (1.0 = perfect bounce, 0.0 = no bounce)
+                // Calculate restitution (bounciness)
+                const restitution = 0.7;
+
+                // Calculate impulse scalar (planet has infinite mass)
                 const j = -(1 + restitution) * velocityAlongNormal;
 
-                // Apply impulse (only to asteroid since planet is immovable)
-                asteroid.velocityX -= j * nx;
-                asteroid.velocityY -= j * ny;
+                // Apply impulse to asteroid
+                asteroid.velocityX += j * nx;
+                asteroid.velocityY += j * ny;
 
-                // Move asteroid out of collision
-                console.log('asteroid', asteroid.x, asteroid.y);
-                console.log('planet', planet.x, planet.y);
-                console.log('distance', distance);
-                const overlap = (asteroid.radius + planet.radius - distance) * 1.01; // Small extra push
-                asteroid.x -= overlap * nx;
-                asteroid.y -= overlap * ny;
+                // Separate asteroid from planet to prevent overlap
+                const overlap = asteroid.radius + planet.radius - distance;
+                if (overlap > 0) {
+                    // Push asteroid away from planet
+                    asteroid.x += overlap * nx;
+                    asteroid.y += overlap * ny;
+                }
 
                 // TODO: Add some visual feedback
-
             }
         }
     }
