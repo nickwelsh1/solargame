@@ -1408,10 +1408,10 @@ function gameLoop(timestamp) {
         0,
         world.height - cameraOffset.y
     );
-    bg.addColorStop(0.0, '#C4743E');  // was #F5914E
-    bg.addColorStop(0.33, '#BF4B32'); // was #EF5E3F
-    bg.addColorStop(0.66, '#963026'); // was #BB3C30
-    bg.addColorStop(1.0, '#661C1C');  // was #802323
+    bg.addColorStop(0.0, '#7A4827');  // was #F5914E
+    bg.addColorStop(0.33, '#772F1F'); // was #EF5E3F
+    bg.addColorStop(0.66, '#5D1E18'); // was #BB3C30
+    bg.addColorStop(1.0, '#401111');  // was #802323
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, camera.width, camera.height);
 
