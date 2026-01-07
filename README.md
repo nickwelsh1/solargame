@@ -1,10 +1,10 @@
 # solargame
 
-* To run type
-`npm run dev`
+- To run type
+  `pnpm run dev`
 
-* To build type
-`npm run build`
+- To build type
+  `pnpm run build`
 
-* To preview type
-`npm run preview`
+- To preview type
+  `pnpm run preview`

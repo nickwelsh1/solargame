@@ -3,7 +3,6 @@
 ## Project Overview
 
 **Name:** Solar Game  
-**Version:** 0.0.1  
 **Type:** Web Game  
 **Framework:** Vanilla JavaScript  
 **Build Tool:** Vite
@@ -206,17 +205,11 @@ Client-side canvas game with object-oriented design pattern
 ### Setup Commands
 
 ```bash
-# Install dependencies
-npm install
-
 # Run development server
-npm run dev
+pnpm run dev
 
 # Build for production
-npm run build
-
-# Preview production build
-npm run preview
+pnpm run build
 ```
 
 ### Dependencies
@@ -228,6 +221,7 @@ npm run preview
 **Runtime:**
 
 - Node.js: 22.15.0
+- pnpm: 10.27.0
 
 ### File Structure
 
