@@ -787,7 +787,7 @@ class Dialogue {
         this.y = camera.height / 2;
 
         // Calculate rectangle dimensions
-        this.rectWidth = camera.width * 0.5; // textWidth + 20;
+        this.rectWidth = camera.width * (isMobile() ? 0.9 : 0.5); // textWidth + 20;
         this.rectHeight = camera.height * 0.3; // textHeight + 20;
         this.rectX = this.x - this.rectWidth / 2;
         this.rectY = this.y - this.rectHeight / 2;
@@ -1372,10 +1372,10 @@ function drawPauseIcon() {
 
 const resetBtnSize = {
     // button dimensions
-    width: camera.width * 0.25, // rectWidth * 0.5 (half of camera.width * 0.5)
+    width: camera.width * (isMobile() ? 0.55 : 0.25), // rectWidth * 0.5 (half of camera.width * 0.5)
     height: camera.height * 0.09, // rectHeight * 0.3 (30% of camera.height * 0.3)
     // Position to match the dialogue's drawing position
-    posX: camera.width / 2 - (camera.width * 0.25) / 2, // Center horizontally
+    posX: camera.width / 2 - (camera.width * (isMobile() ? 0.55 : 0.25)) / 2, // Center horizontally
     posY: camera.height / 2 + camera.height * 0.07 - camera.height * 0.045, // Center vertically with text offset
 };
 
@@ -1397,7 +1397,23 @@ function gameLoop(timestamp) {
     const deltaTime = timestamp - lastTime;
     lastTime = timestamp;
 
-    ctx.clearRect(0, 0, camera.width, camera.height);
+    // ctx.clearRect(0, 0, camera.width, camera.height);
+    // Background gradient
+    // const bg = ctx.createLinearGradient(0, 0, 0, camera.height); // top -> bottom
+    // world Y=0 appears at screen Y = -cameraOffset.y
+    // world Y=world.height appears at screen Y = world.height - cameraOffset.y
+    const bg = ctx.createLinearGradient(
+        0,
+        -cameraOffset.y,
+        0,
+        world.height - cameraOffset.y
+    );
+    bg.addColorStop(0.0, '#C4743E');  // was #F5914E
+    bg.addColorStop(0.33, '#BF4B32'); // was #EF5E3F
+    bg.addColorStop(0.66, '#963026'); // was #BB3C30
+    bg.addColorStop(1.0, '#661C1C');  // was #802323
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, camera.width, camera.height);
 
     // ===== UPDATE PHASE (skip if paused) =====
     if (!state.game_paused) {

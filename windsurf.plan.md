@@ -304,9 +304,8 @@ Static web hosting
 
 ### Recommended Platforms
 
-- Cloudflare static hosting
-- GitHub Pages
-- Any static host
+- Cloudflare Pages (static hosting)
+- or GitHub Pages
 
 ---
 
@@ -368,30 +367,40 @@ Todo: Code (Game)
 Priority: intuitive movement mechanics, ui to indicate selected weapon, and what buttons do (choose thrust button, or rts style select to move (move mode vs fire mode)?) UI/UX
 Entities - planets, warp exit, (Levels, objectives)
 Objectives - destroy enemies, get to destination/pickup tools
+
 Controls - additional buttons [pause, thrust {fine control?}, dash (through soft enemies), brake] - Layout? push/pull, grapple/tow, juggle, ride
 Controls - tap to slow, double tap to stop ?
 Controls - smoother control of speeds
+
 make first weapon bullets
 resources to collect ($$$ / rings / salvage)
-Obstacles/forces - solar winds, shockwaves, fast asteroids, spinning turret beams, lava flood/wave, solar flare, destructable objects, ice geysers, 
+
+Obstacles/forces - solar winds, shockwaves, fast asteroids, spinning turret beams, lava flood/wave, solar flare, destructable objects, ice geysers,
+
 Limits - fuel, ammo, health, life support? food?
 Slower speed, reduce collision dmg with asteroids?
+
 Entities - heavy and light objects that can be pushed and pulled around (additional properties, like heat resistant/shielding, light obscuring, absorb enemy shots, obscure enemy vision)
 Entities - configurable JSON (i.e. can have health, weight, direction, speed, isExplosive, drops[array], aggroRadius, attractTo: player, friendlyFire, patrolPath, patrolZone, attackTypes[move, shoot, missile, areaAttack], homingArc, heat, heatResistance, cold, coldResistance, hearingRadius, coolDown, evasionStrategy[avoidsClose, trysToGetClose], solarPowered, energy)
 Entities - exploding barrels/fuel tanks
 Entities - enemy mines (radius drift toward player) & drone turrets
+
 Enemy - zones or patrol paths they are unlikely to leave (gravity?)
 Enemy - wall of spikes like attack/enemy you need to dash to dodge
 Enemy - fast weak charging enemy
 Enemy - large enemy that tries to chomp you
 Enemy - boss fights, telegraphed attacks, timed weak spots
+
 Interesting enemies (drift mines, stationary drone, missile , enemy fighters)
 Transferable, combinable properties/mechanics
 Controls - virtual joystick
+
 Entities - destinations (planets, stations, warp gates)
+
 Player - health to take more hits OR asteroids less dangerous?
 Player - shields / placeable shield wall, player & asteroid bounce physics
 Player - after taking dmg, no new dmg for 30ms
+
 Header - "gameover" does not need to display in header.
 Menus - on gameover screen show last top 5 scores
 Asteroids - split too small (too dangerous, too hard?) - smallest chunks should be a resource$$$
