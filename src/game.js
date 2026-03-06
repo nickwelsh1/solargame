@@ -6,6 +6,7 @@ const debugEl = initDebugArea();
 
 let ship, asteroids = [], projectiles = [], particles = [], planets = [], dialogue;
 let beams = []; // Array to track active beams
+let containers = [], scrap = [];
 let world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
 let camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
 
@@ -107,6 +108,7 @@ class Ship {
         this.targetY = this.y;
         this.mass = Math.PI * this.radius * this.radius;
         this.maxRotationSpeed = Math.PI / 180 * 0.25; // 0.25 degree per ms in radians
+        this.towedContainer = null;
 
         // Initialize ship's contrail
         this.contrail = {
@@ -330,9 +332,21 @@ class Ship {
             this.x = Math.max(0, Math.min(this.x, world.width));
             this.y = Math.max(0, Math.min(this.y, world.height));
         }
+
+        // Update towed container position (behind the ship)
+        if (this.towedContainer) {
+            const towDist = 50;
+            this.towedContainer.x = this.x - Math.cos(this.angle) * towDist;
+            this.towedContainer.y = this.y - Math.sin(this.angle) * towDist;
+        }
     }
 
     draw() {
+        // Draw towed container behind ship
+        if (this.towedContainer) {
+            this.towedContainer.draw();
+        }
+
         // Draw contrail first
         this.contrail.draw(cameraOffset);
 
@@ -858,6 +872,133 @@ class Dialogue {
 }
 
 
+class CargoContainer {
+    constructor(x, y) {
+        this.name = 'container';
+        this.x = x !== undefined ? x : randomMinMax(80, world.width - 80);
+        this.y = y !== undefined ? y : randomMinMax(80, world.height - 80);
+        this.width = 40;
+        this.height = 24;
+        this.health = 30;
+        this.maxHealth = 30;
+        this.velocityX = 0;
+        this.velocityY = 0;
+        this.isTowed = false;
+        this.contents = Math.random() < 0.7 ? 'salvage' : null;
+    }
+
+    update(deltaTime) {
+        if (this.isTowed) return;
+        this.x += this.velocityX * deltaTime / 1000;
+        this.y += this.velocityY * deltaTime / 1000;
+        this.velocityX *= 0.99;
+        this.velocityY *= 0.99;
+        if (this.x - this.width / 2 < 0 || this.x + this.width / 2 > world.width) this.velocityX *= -1;
+        if (this.y - this.height / 2 < 0 || this.y + this.height / 2 > world.height) this.velocityY *= -1;
+        this.x = Math.max(this.width / 2, Math.min(this.x, world.width - this.width / 2));
+        this.y = Math.max(this.height / 2, Math.min(this.y, world.height - this.height / 2));
+    }
+
+    draw() {
+        const sx = this.x - cameraOffset.x;
+        const sy = this.y - cameraOffset.y;
+        const w = this.width;
+        const h = this.height;
+        ctx.save();
+        ctx.translate(sx, sy);
+        // Body
+        ctx.fillStyle = '#C8A012';
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        // Border
+        ctx.strokeStyle = '#7A6000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        // Cross dividers
+        ctx.beginPath();
+        ctx.moveTo(0, -h / 2);
+        ctx.lineTo(0, h / 2);
+        ctx.moveTo(-w / 2, 0);
+        ctx.lineTo(w / 2, 0);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // Health bar
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-w / 2, -h / 2 - 7, w, 4);
+        ctx.fillStyle = `hsl(${(this.health / this.maxHealth) * 120}, 100%, 45%)`;
+        ctx.fillRect(-w / 2, -h / 2 - 7, w * (this.health / this.maxHealth), 4);
+        // Tow indicator
+        if (this.isTowed) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
+            ctx.setLineDash([]);
+        }
+        ctx.restore();
+    }
+
+    takeDamage(amount) {
+        this.health -= amount;
+        if (this.health <= 0) {
+            this.destroy();
+        }
+    }
+
+    destroy() {
+        if (this.isTowed && ship.towedContainer === this) {
+            ship.towedContainer = null;
+        }
+        // 50% chance to drop contents as collectable scrap
+        if (this.contents && Math.random() < 0.5) {
+            const drop = new Scrap(this.x, this.y, this.contents);
+            scrap.push(drop);
+        }
+        // Debris fragments
+        for (let i = 0; i < 4; i++) {
+            scrap.push(new Scrap(this.x, this.y, null));
+        }
+        const idx = containers.indexOf(this);
+        if (idx !== -1) containers.splice(idx, 1);
+        const eidx = entities.indexOf(this);
+        if (eidx !== -1) entities.splice(eidx, 1);
+    }
+}
+
+
+class Scrap {
+    constructor(x, y, contents) {
+        this.name = 'scrap';
+        this.x = x;
+        this.y = y;
+        this.contents = contents;
+        this.width = contents ? 10 : 5;
+        this.height = contents ? 7 : 4;
+        this.velocityX = randomMinMax(-40, 40);
+        this.velocityY = randomMinMax(-40, 40);
+        this.lifespan = contents ? 30000 : 5000;
+    }
+
+    update(deltaTime) {
+        this.x += this.velocityX * deltaTime / 1000;
+        this.y += this.velocityY * deltaTime / 1000;
+        this.velocityX *= 0.995;
+        this.velocityY *= 0.995;
+        this.lifespan -= deltaTime;
+    }
+
+    draw() {
+        const alpha = this.contents ? 1 : Math.min(1, this.lifespan / 1000);
+        const sx = this.x - cameraOffset.x;
+        const sy = this.y - cameraOffset.y;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.fillStyle = this.contents ? '#FFD700' : '#888';
+        ctx.fillRect(sx - this.width / 2, sy - this.height / 2, this.width, this.height);
+        ctx.restore();
+    }
+}
+
+
 function spawnInitialAsteroids() {
     console.log('spawnInitialAsteroids');
     for (let i = 0; i < CONFIG.INITIAL_ASTEROID_COUNT; i++) {
@@ -1247,6 +1388,23 @@ function checkAsteroidPlanetCollisions() {
     }
 }
 
+function checkAsteroidContainerCollisions() {
+    for (let i = containers.length - 1; i >= 0; i--) {
+        const container = containers[i];
+        const containerRadius = Math.hypot(container.width / 2, container.height / 2);
+        for (let j = 0; j < asteroids.length; j++) {
+            const asteroid = asteroids[j];
+            if (checkCircleCollision(
+                asteroid.x, asteroid.y, asteroid.radius,
+                container.x, container.y, containerRadius
+            )) {
+                container.takeDamage(10);
+                break;
+            }
+        }
+    }
+}
+
 function handleCollisions() {
     if (state.game_paused) {
         return;
@@ -1257,6 +1415,7 @@ function handleCollisions() {
     checkShipAsteroidCollisions();
     checkAsteroidAsteroidCollisions();
     checkAsteroidPlanetCollisions();
+    checkAsteroidContainerCollisions();
 }
 
 
@@ -1370,6 +1529,32 @@ function drawPauseIcon() {
     drawRectangle(pauseBtnIcon, { x: CENTER_CIRCLE_RADIUS * 0.76, y: 0 });
 }
 
+const cargoBtnSize = {
+    width: ((camera.width < 800) ? camera.width * 0.2 : camera.width * 0.1),
+    height: camera.height * 0.1,
+    posX: 10,
+    posY: camera.height - (camera.height * 0.1 + 10) * 3,
+};
+
+function drawCargoButton() {
+    const hasTowed = ship && ship.towedContainer !== null;
+    const nearbyContainer = containers.find(c => !c.isTowed && Math.hypot(ship.x - c.x, ship.y - c.y) < 80);
+    const canPickup = !hasTowed && nearbyContainer;
+    const colour = hasTowed
+        ? 'hsla(120, 80%, 35%, 0.85)'
+        : canPickup ? 'hsla(55, 100%, 45%, 0.75)' : 'hsla(0, 0%, 35%, 0.45)';
+    drawRectangle(cargoBtnSize, { x: 0, y: 0 }, colour);
+    ctx.font = `bold ${Math.round(cargoBtnSize.height * 0.3)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'white';
+    ctx.fillText(
+        hasTowed ? 'DROP' : 'PICK',
+        cargoBtnSize.posX + cargoBtnSize.width / 2,
+        cargoBtnSize.posY + cargoBtnSize.height / 2
+    );
+}
+
 const resetBtnSize = {
     // button dimensions
     width: camera.width * (isMobile() ? 0.55 : 0.25), // rectWidth * 0.5 (half of camera.width * 0.5)
@@ -1457,6 +1642,19 @@ function gameLoop(timestamp) {
             }
         });
 
+        // Update containers
+        containers.forEach(container => {
+            container.update(deltaTime);
+        });
+
+        // Update scrap and remove expired
+        for (let i = scrap.length - 1; i >= 0; i--) {
+            scrap[i].update(deltaTime);
+            if (scrap[i].lifespan <= 0) {
+                scrap.splice(i, 1);
+            }
+        }
+
         // Handle collisions
         handleCollisions();
 
@@ -1489,6 +1687,16 @@ function gameLoop(timestamp) {
         planet.draw();
     });
 
+    // Draw scrap
+    scrap.forEach(s => {
+        s.draw();
+    });
+
+    // Draw free containers (towed container is drawn by ship.draw)
+    containers.forEach(container => {
+        if (!container.isTowed) container.draw();
+    });
+
     // Draw ship
     ship.draw();
 
@@ -1512,6 +1720,7 @@ function gameLoop(timestamp) {
     drawRectangle(actionBtnSize, { x: 0, y: 0 }, 'hsla(64, 100%, 82%, 0.5)');
     drawRectangle(pauseBtnSize);
     drawPauseIcon(pauseBtnIcon);
+    drawCargoButton();
 
     drawCenterCircle(CENTER_CIRCLE_RADIUS);
     drawCenterCircle(CENTER_LOWTHRUST_RADIUS);
@@ -1659,6 +1868,8 @@ function handlePointerDown(event) {
         asteroids = [];
         projectiles = [];
         beams = [];
+        containers = [];
+        scrap = [];
         entities = [];
         spawnInitialAsteroids();
     }
@@ -1690,6 +1901,37 @@ function handlePointerDown(event) {
     if (!state.game_over && isUIButtonClicked(pauseBtnSize)) {
         state.game_paused = !state.game_paused;
         console.log('Game paused:', state.game_paused);
+    }
+
+    // Handle cargo pickup/drop button
+    if (!state.game_over && isUIButtonClicked(cargoBtnSize)) {
+        if (ship.towedContainer) {
+            // Drop the container
+            const c = ship.towedContainer;
+            c.isTowed = false;
+            c.velocityX = Math.cos(ship.movementAngle) * ship.speed * 1000 * 0.5;
+            c.velocityY = Math.sin(ship.movementAngle) * ship.speed * 1000 * 0.5;
+            ship.towedContainer = null;
+            console.log('Container dropped');
+        } else {
+            // Pick up nearest container within range
+            const PICKUP_RANGE = 80;
+            let nearest = null;
+            let nearestDist = Infinity;
+            for (const c of containers) {
+                if (c.isTowed) continue;
+                const dist = Math.hypot(ship.x - c.x, ship.y - c.y);
+                if (dist < PICKUP_RANGE && dist < nearestDist) {
+                    nearest = c;
+                    nearestDist = dist;
+                }
+            }
+            if (nearest) {
+                nearest.isTowed = true;
+                ship.towedContainer = nearest;
+                console.log('Container picked up');
+            }
+        }
     }
 
     const asteroidClicked = asteroids.some(asteroid => {
@@ -1786,8 +2028,19 @@ function clearEntities() {
     console.log('clearEntities names:', names);
 }
 
+function spawnInitialContainers() {
+    for (let i = 0; i < 5; i++) {
+        const container = new CargoContainer();
+        containers.push(container);
+        entities.push(container);
+    }
+    console.log('containers spawned:', containers.length);
+}
+
 function initGame() {
     state.score = 0;
+    containers = [];
+    scrap = [];
     startTimer(5);
     message.innerText = state.score;
     dialogue = new Dialogue();
@@ -1797,6 +2050,7 @@ function initGame() {
     spanInitialPlanets();
     createParticles();
     spawnInitialAsteroids();
+    spawnInitialContainers();
     requestAnimationFrame(gameLoop);
 }
 
