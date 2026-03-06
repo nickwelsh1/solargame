@@ -884,6 +884,7 @@ class CargoContainer {
         this.velocityX = 0;
         this.velocityY = 0;
         this.isTowed = false;
+        this.discovered = false;
         this.contents = Math.random() < 0.7 ? 'salvage' : null;
     }
 
@@ -1469,6 +1470,14 @@ function drawMiniMap() {
         ctx.fill();
     });
 
+    // Draw discovered containers
+    containers.forEach(container => {
+        if (container.discovered) {
+            ctx.fillStyle = 'yellow';
+            ctx.fillRect(MINIMAP_MARGIN + container.x * scaleFactor - 1, MINIMAP_MARGIN + container.y * scaleFactor - 1, 3, 3);
+        }
+    });
+
     // Draw mini planets
     planets.forEach(planet => {
         ctx.fillStyle = 'cyan';
@@ -1648,9 +1657,16 @@ function gameLoop(timestamp) {
             }
         });
 
-        // Update containers
+        // Update containers and check if they enter the player's view
         containers.forEach(container => {
             container.update(deltaTime);
+            if (!container.discovered) {
+                const sx = container.x - cameraOffset.x;
+                const sy = container.y - cameraOffset.y;
+                if (sx >= 0 && sx <= camera.width && sy >= 0 && sy <= camera.height) {
+                    container.discovered = true;
+                }
+            }
         });
 
         // Update scrap and remove expired
