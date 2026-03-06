@@ -1469,6 +1469,12 @@ function drawMiniMap() {
         ctx.fill();
     });
 
+    // Draw mini planets
+    planets.forEach(planet => {
+        ctx.fillStyle = 'cyan';
+        ctx.fillRect(MINIMAP_MARGIN + planet.x * scaleFactor, MINIMAP_MARGIN + planet.y * scaleFactor, 4, 4);
+    });
+
     // Draw mini ship
     ctx.fillStyle = 'yellow';
     ctx.fillRect(MINIMAP_MARGIN + ship.x * scaleFactor, MINIMAP_MARGIN + ship.y * scaleFactor, 2, 2);
