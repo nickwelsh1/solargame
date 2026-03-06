@@ -73,7 +73,7 @@ const shipSVG2 = `
 `;
 
 const shipSVG3 = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="62" height="62"> <path d="m16 1-5 14-9 10 3 2 3-2 4 2v3l1.6-1.1.5 1.2L16 30h1.9l.5-1.1L20 30v-3l4-2 3 2 3-2-9-10z" style="fill:slategrey"/> </svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="62" height="62"> <path d="m16 1-5 14-9 10 3 2 3-2 4 2v3l1.6-1.1.5 1.2L16 30h1.9l.5-1.1L20 30v-3l4-2 3 2 3-2-9-10z" style="fill:hsl(200 20% 20%)"/> </svg>
 `;
 
 const shipImg = loadSVGString(shipSVG3);
@@ -435,7 +435,7 @@ class Asteroid {
         // color in HSL (degrees, percentage, percentage)
         this.hue = randomMinMax(10, 30); // + 340
         this.saturation = randomMinMax(50, 90);
-        this.lightness = randomMinMax(30, 40); // Increased minimum to 45 and range to give 45-80
+        this.lightness = randomMinMax(10, 20); // Increased minimum to 45 and range to give 45-80
         this.mass = Math.PI * this.radius * this.radius * 3;
 
         // Add rotation properties
