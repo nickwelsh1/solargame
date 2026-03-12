@@ -49,6 +49,11 @@ const input = {
     centerHoldStartTime: 0, // Time when pointer down started in center circle
     isBraking: false, // Whether ship is currently in braking mode
     brakeStartTime: 0, // Time when braking started
+    brakeStartSpeed: 0, // Ship speed at start of brake
+    brakeTargetFraction: 0.5, // 0.5 = half speed, 0 = full stop
+    lastCenterTapTime: 0, // For double-tap detection
+    centerDownX: 0, // Pointer X when center circle was pressed
+    centerDownY: 0, // Pointer Y when center circle was pressed
 }
 
 const ui = {
@@ -261,17 +266,17 @@ class Ship {
         // Handle braking if active
         if (input.isBraking) {
             const currentTime = performance.now();
-            const brakeProgress = Math.min(1, (currentTime - input.brakeStartTime) / 1000);
+            const brakeProgress = Math.min(1, (currentTime - input.brakeStartTime) / 400);
+            const targetSpeed = input.brakeStartSpeed * input.brakeTargetFraction;
 
             if (brakeProgress >= 1) {
                 // Braking completed
-                this.speed = 0;
-                this.targetSpeed = 0;
+                this.speed = targetSpeed;
+                this.targetSpeed = targetSpeed;
                 input.isBraking = false;
             } else {
-                // Gradually reduce speed based on brake progress
-                const originalSpeed = this.speed;
-                this.speed = originalSpeed * (1 - brakeProgress);
+                // Linearly interpolate toward target speed
+                this.speed = input.brakeStartSpeed + (targetSpeed - input.brakeStartSpeed) * brakeProgress;
             }
         } else {
             // Handle exponential acceleration/deceleration toward target speed
@@ -351,6 +356,43 @@ class Ship {
 
         // Draw contrail first
         this.contrail.draw(cameraOffset);
+
+        // Draw brake indicator: 8 inward-pointing triangles around ship
+        if (input.isBraking) {
+            const sx = this.x - cameraOffset.x;
+            const sy = this.y - cameraOffset.y;
+            const radius = 36;
+            const triSize = 8;
+            ctx.save();
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2;
+                const cx = sx + Math.cos(a) * radius;
+                const cy = sy + Math.sin(a) * radius;
+                // tip points inward toward ship center
+                const tipX = cx - Math.cos(a) * triSize * 0.65;
+                const tipY = cy - Math.sin(a) * triSize * 0.65;
+                // base midpoint (outward)
+                const baseMidX = cx + Math.cos(a) * triSize * 0.4;
+                const baseMidY = cy + Math.sin(a) * triSize * 0.4;
+                // gradient: white at tip, transparent at base
+                const grad = ctx.createLinearGradient(tipX, tipY, baseMidX, baseMidY);
+                grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+                grad.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = grad;
+                // base corners spread perpendicular, offset outward
+                const lbX = cx - Math.sin(a) * triSize * 0.5 + Math.cos(a) * triSize * 0.4;
+                const lbY = cy + Math.cos(a) * triSize * 0.5 + Math.sin(a) * triSize * 0.4;
+                const rbX = cx + Math.sin(a) * triSize * 0.5 + Math.cos(a) * triSize * 0.4;
+                const rbY = cy - Math.cos(a) * triSize * 0.5 + Math.sin(a) * triSize * 0.4;
+                ctx.beginPath();
+                ctx.moveTo(tipX, tipY);
+                ctx.lineTo(lbX, lbY);
+                ctx.lineTo(rbX, rbY);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        }
 
         // Draw ship
         ctx.save();
@@ -1813,17 +1855,7 @@ function gameLoop(timestamp) {
         // Update dialogue
         dialogue.update(deltaTime);
 
-        // Handle braking logic (if dragging from center)
-        if (input.isDraggingFromCenter && input.isMouseDown) {
-            const currentTime = performance.now();
-            if (input.centerHoldStartTime > 0 &&
-                currentTime - input.centerHoldStartTime >= 600 &&
-                !input.isBraking) {
-                input.isBraking = true;
-                input.brakeStartTime = currentTime;
-                console.log('Brake initiated');
-            }
-        }
+        // (braking is triggered on tap, see handlePointerDown)
     }
 
     // ===== DRAW PHASE (always runs) =====
@@ -2013,12 +2045,12 @@ function handlePointerDown(event) {
     // location of click: center circle
     if (isInCenterCircle) {
         input.isDraggingFromCenter = true;
-        input.centerHoldStartTime = performance.now(); // Record the time when center hold started
+        input.centerHoldStartTime = performance.now();
+        input.centerDownX = ui.mouseX;
+        input.centerDownY = ui.mouseY;
     } else {
         input.isDraggingFromCenter = false; // Click is outside the center circle
         input.centerHoldStartTime = 0; // Reset center hold time
-
-
     }
 
     // Add point to contrail
@@ -2167,9 +2199,20 @@ function handlePointerMove(event) {
 
 function handlePointerUp() {
     if (input.isDraggingFromCenter) {
-        // Only set new target if we're not in braking mode
-        if (!input.isBraking) {
-            ship.setTarget(ui.mouseX, ui.mouseY); // Use current mouseX, mouseY (screen coords) as target
+        const dragDist = Math.hypot(ui.mouseX - input.centerDownX, ui.mouseY - input.centerDownY);
+        if (dragDist > 20) {
+            // Dragged far enough — steer to target, cancel any brake
+            input.isBraking = false;
+            ship.setTarget(ui.mouseX, ui.mouseY);
+        } else {
+            // Tap (no significant drag) — apply single or double-tap brake
+            const now = performance.now();
+            const isDoubleTap = (now - input.lastCenterTapTime) < 350 && input.lastCenterTapTime > 0;
+            input.isBraking = true;
+            input.brakeStartTime = now;
+            input.brakeStartSpeed = ship.speed;
+            input.brakeTargetFraction = isDoubleTap ? 0 : 0.5;
+            input.lastCenterTapTime = isDoubleTap ? 0 : now;
         }
         input.isDraggingFromCenter = false; // Reset the flag
     }
