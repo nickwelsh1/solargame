@@ -326,13 +326,69 @@ Static web hosting
 - ⚠️ No test coverage
 - ⚠️ Limited documentation in code
 
-### Next Steps
+### Future Steps
 
-1. Refactor game.js into modules
-2. Implement weapon selection UI
-3. Add sound effects
-4. Create enemy AI
-5. Add level progression system
+- Refactor game.js into modules
+- Implement weapon selection UI
+- Add sound effects
+- Create enemy AI
+- Add level progression system
+
+-
+-
+
+-
+-
+
+### TO READ & ACTION - Bugs & Improvements:
+
+### TODO Priorities:
+
+Menu with Options:
+
+- Start Game
+- Controls
+- Sound ON/OFF
+
+Controls Options for Prototyping movement:
+
+1.  simple TOUCH: existing click anywhere (direction & shoot) + thrust button
+    - simple KB & MOUSE: existing click anywhere (direction & shoot) + thrust KB button
+      -- simple? GAMEPAD: (ship movement) + button (shoot) [no way to test]
+
+2.  current TOUCH: flick drag to set speed & direction + click anywhere (direction & shoot)
+    - shooting should be burst of fire with required cooldowns.
+    -
+    - complex multi-TOUCH: existing click anywhere (shoot direction) + screen joystick corner (ship movement)
+    - complex KB & MOUSE: arrow keys (ship movement) + mouse click (shoot)
+
+Bugs:
+
+- Tap (inner circle) to brake 50% over 100ms. double-tap to brake 100% over 100ms.
+  - CHOICE: double-tap or long-press to get 100% brake?
+- flick drag to set speed & direction, get there over 100ms.
+  - Looks like it does this already, might need to slow turning or both a bit?
+  - combine with more accurate flick direction against current direction momentum.
+    - idea that you give accurrate orders, and the ship responds but with time from momentum.
+  - CHOICE:test how it feels?
+- initial start ship speed should be 0
+- pointer dot should not be drawn in inner circle
+- restart button not centered
+- flick direction should be more accurate again, just take 200ms to get to new set direction
+  - animate transition
+- more precise control over speed
+- outer circle should be smaller to allow some room for finger outside? or just remove outer circle?
+- allow twice as long for flick drag to set speed & direction
+- fuel system, 100 fuel, 10 fuel used per slow move, 30 fuel per fast move, 4 fuel per brake.
+- LOW: planets are all the same size & color
+- pause icon not centered in button
+- LOW:asteroid/foreground objects colours don't always standout on background
+  - perhaps more fg colour consistency/harmony?
+- add thrust button (prototype:thrust vs flick movement system?)
+- zoom in & out at low speeds vs high speeds?
+- ship health bar 100hp, asteroid impact damage 10hp, asteroid hp (large 30hp, medium 20hp, small 10hp), asteroids take small amount of damage on collision. collision hp damage relative to collision speed (max 50hp, min 1hp).
+- collision fx (sparks/dust)
+- LOW: button alignment going off bottom of mobile screen when screen rotated
 
 //TODO: shooting fixes
 // -tapping in inner circle should not instantly stop ship (perhaps only slow 10%?)
