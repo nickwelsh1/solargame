@@ -27,6 +27,7 @@ const CONFIG = Object.freeze({
 
 // Game State
 const state = {
+    screen: 'menu', // 'menu' | 'controls' | 'game'
     game_over: false,
     game_paused: false,
     score: 0,
@@ -1579,6 +1580,102 @@ const resetBtnSize = {
     posY: camera.height / 2 + camera.height * 0.07 - camera.height * 0.045, // Center vertically with text offset
 };
 
+const _menuBtnW = Math.min(308, camera.width * 0.66);
+const _menuBtnH = Math.max(50, camera.height * 0.09);
+const _menuBtnX = camera.width / 2 - _menuBtnW / 2;
+
+const menuStartBtnSize = { width: _menuBtnW, height: _menuBtnH, posX: _menuBtnX, posY: camera.height * 0.48 };
+const menuControlsBtnSize = { width: _menuBtnW, height: _menuBtnH, posX: _menuBtnX, posY: camera.height * 0.60 };
+const menuBackBtnSize = { width: _menuBtnW * 0.6, height: _menuBtnH, posX: camera.width / 2 - _menuBtnW * 0.3, posY: camera.height * 0.82 };
+
+function drawMenuBackground() {
+    const bg = ctx.createLinearGradient(0, 0, 0, camera.height);
+    bg.addColorStop(0.0, '#7A4827');
+    bg.addColorStop(0.33, '#772F1F');
+    bg.addColorStop(0.66, '#5D1E18');
+    bg.addColorStop(1.0, '#401111');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, camera.width, camera.height);
+}
+
+function drawMenuButton(btnSize, label, active) {
+    ctx.fillStyle = active ? 'hsla(40, 100%, 60%, 0.85)' : 'hsla(0, 0%, 100%, 0.12)';
+    ctx.strokeStyle = active ? 'hsla(40, 100%, 75%, 1)' : 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.fillRect(btnSize.posX, btnSize.posY, btnSize.width, btnSize.height);
+    ctx.strokeRect(btnSize.posX, btnSize.posY, btnSize.width, btnSize.height);
+    ctx.font = `bold ${Math.round(btnSize.height * 0.38)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = active ? '#1a0a00' : 'white';
+    ctx.fillText(label, btnSize.posX + btnSize.width / 2, btnSize.posY + btnSize.height / 2);
+}
+
+function drawMainMenu() {
+    drawMenuBackground();
+    // Title
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'hsla(40, 100%, 70%, 1)';
+    const titleSize = Math.min(Math.round(camera.height * 0.09), Math.round(camera.width * 0.11));
+    ctx.font = `bold ${titleSize}px sans-serif`;
+    ctx.fillText('SOLAR GAME', camera.width / 2, camera.height * 0.25);
+    // Subtitle
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    const subSize = Math.round(camera.height * 0.03);
+    ctx.font = `${subSize}px sans-serif`;
+    const subtitle = 'navigate · salvage · survive';
+    const subY = camera.height * 0.34;
+    if (ctx.measureText(subtitle).width > camera.width * 0.82) {
+        ctx.fillText('navigate · salvage', camera.width / 2, subY - subSize * 0.7);
+        ctx.fillText('· survive', camera.width / 2, subY + subSize * 0.7);
+    } else {
+        ctx.fillText(subtitle, camera.width / 2, subY);
+    }
+    // Buttons
+    const nearStart = isUIButtonClicked(menuStartBtnSize);
+    const nearCtrl = isUIButtonClicked(menuControlsBtnSize);
+    drawMenuButton(menuStartBtnSize, 'START GAME', nearStart);
+    drawMenuButton(menuControlsBtnSize, 'CONTROLS', nearCtrl);
+}
+
+function drawControlsScreen() {
+    drawMenuBackground();
+    // Title
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'hsla(40, 100%, 70%, 1)';
+    ctx.font = `bold ${Math.round(camera.height * 0.07)}px sans-serif`;
+    ctx.fillText('CONTROLS', camera.width / 2, camera.height * 0.14);
+    // Control list
+    const items = [
+        ['Tap / Click', 'Move ship toward cursor'],
+        ['Hold center circle', 'Brake'],
+        ['Weapon button', 'Cycle weapons'],
+        ['Pause button', 'Pause / Unpause'],
+        ['PICK button', 'Pick up nearby cargo container'],
+        ['DROP button', 'Drop towed cargo container'],
+    ];
+    const lineH = Math.min(camera.height * 0.072, 46);
+    const startY = camera.height * 0.26;
+    const colLabel = camera.width * 0.08;
+    const colDesc = camera.width * 0.52;
+    const fontSize = Math.round(lineH * 0.38);
+    ctx.textBaseline = 'middle';
+    items.forEach(([label, desc], i) => {
+        const y = startY + i * lineH;
+        ctx.textAlign = 'left';
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        ctx.fillStyle = 'hsla(40, 100%, 65%, 1)';
+        ctx.fillText(label, colLabel, y);
+        ctx.font = `${fontSize}px sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.fillText(desc, colDesc, y);
+    });
+    // Back button
+    drawMenuButton(menuBackBtnSize, 'BACK', isUIButtonClicked(menuBackBtnSize));
+}
+
 function drawRectangle(buttonSize, offset = { x: 0, y: 0 }, colour) {
 
     let fill = colour || 'hsla(320, 100%, 83%, 0.50)';
@@ -1590,6 +1687,23 @@ function drawRectangle(buttonSize, offset = { x: 0, y: 0 }, colour) {
     ctx.fillRect(buttonSize.posX + offset.x, buttonSize.posY + offset.y, buttonSize.width, buttonSize.height);
     // Draw the rectangle stroke
     ctx.strokeRect(buttonSize.posX + offset.x, buttonSize.posY + offset.y, buttonSize.width, buttonSize.height);
+}
+
+function showMainMenu() {
+    state.screen = 'menu';
+    requestAnimationFrame(menuLoop);
+}
+
+function menuLoop() {
+    if (state.screen === 'menu') {
+        drawMainMenu();
+    } else if (state.screen === 'controls') {
+        drawControlsScreen();
+    }
+    drawCursorDot(false);
+    if (state.screen !== 'game') {
+        requestAnimationFrame(menuLoop);
+    }
 }
 
 let lastTime = 0;
@@ -1858,6 +1972,22 @@ function handlePointerDown(event) {
     ui.mouseX = (event.clientX - rect.left) * scaleX;
     ui.mouseY = (event.clientY - rect.top) * scaleY;
 
+    // Handle menu screens before any game logic
+    if (state.screen === 'menu') {
+        if (isUIButtonClicked(menuStartBtnSize)) {
+            initGame();
+        } else if (isUIButtonClicked(menuControlsBtnSize)) {
+            state.screen = 'controls';
+        }
+        return;
+    }
+    if (state.screen === 'controls') {
+        if (isUIButtonClicked(menuBackBtnSize)) {
+            state.screen = 'menu';
+        }
+        return;
+    }
+
     const centerCircleX = camera.width / 2;
     const centerCircleY = camera.height / 2;
     const distToCenter = Math.hypot(ui.mouseX - centerCircleX, ui.mouseY - centerCircleY);
@@ -2060,6 +2190,7 @@ function spawnInitialContainers() {
 }
 
 function initGame() {
+    state.screen = 'game';
     state.score = 0;
     containers = [];
     scrap = [];
@@ -2076,7 +2207,7 @@ function initGame() {
     requestAnimationFrame(gameLoop);
 }
 
-initGame();
+showMainMenu();
 
 function isPointOverAsteroid(x, y) {
     // Convert screen coordinates to world coordinates by adding camera offset
