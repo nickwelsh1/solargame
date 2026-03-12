@@ -344,10 +344,10 @@ Static web hosting
 
 ### TODO Priorities:
 
-Menu with Options:
+DONE: Menu with Options:
 
-- Start Game
-- Controls
+DONE: - Start Game
+DONE: - Controls
 
 Controls Options for Prototyping movement:
 
@@ -365,6 +365,7 @@ Bugs:
 
 - Tap (inner circle) to brake 50% over 100ms. double-tap to brake 100% over 100ms.
   - CHOICE: double-tap or long-press to get 100% brake?
+  - Currently braking is long press in inner-circle and tapping. Let's change it to single tap-up reduce current speed by 50%, double-tap-up reduce speed to 0. To visually indicate the braking let's add 8 little white triangles distributed evenly around the ship in a circle, each triangle pointing inwards to indicate braking.
 - flick drag to set speed & direction, get there over 100ms.
   - Looks like it does this already, might need to slow turning or both a bit?
   - combine with more accurate flick direction against current direction momentum.
