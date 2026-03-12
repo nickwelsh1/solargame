@@ -348,7 +348,6 @@ Menu with Options:
 
 - Start Game
 - Controls
-- Sound ON/OFF
 
 Controls Options for Prototyping movement:
 

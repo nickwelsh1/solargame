@@ -32,6 +32,7 @@ const state = {
     game_paused: false,
     score: 0,
     timer: {},
+    initialContainerCount: 0,
 }
 
 const CENTER_CIRCLE_RADIUS = 50 * CONFIG.MOBILE_SCALE;  // Radius of the central UI circle for interaction
@@ -1091,7 +1092,6 @@ function checkLineCircleCollision(beam, circleX, circleY, circleRadius) {
  */
 function incrementScore() {
     state.score++;
-    message.innerText = state.score;
 }
 
 /**
@@ -1167,7 +1167,6 @@ function triggerGameOver() {
     // Stop the timer when game over
     if (state.timer.interval) {
         clearInterval(state.timer.interval);
-        message.innerText = `${state.score} | GAME OVER`;
     }
 
     clearEntities();
@@ -1676,6 +1675,23 @@ function drawControlsScreen() {
     drawMenuButton(menuBackBtnSize, 'BACK', isUIButtonClicked(menuBackBtnSize));
 }
 
+function drawHUD() {
+    const timeText = (state.timer.timerExpired || !state.timer.startTime) ? '00:00' : checkTimer();
+    const fontSize = Math.min(Math.round(Math.min(camera.height * 0.038, camera.width * 0.045)), 16);
+    const lineH = fontSize * 1.5;
+    const remaining = containers.filter(c => !c.destroyed).length;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.shadowColor = 'rgba(0,0,0,0.7)';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillText(`Score: ${state.score}   |   ${timeText}`, camera.width / 2, 10);
+    ctx.fillText(`${remaining}/${state.initialContainerCount} containers   |   ${planets.length} planets`, camera.width / 2, 10 + lineH);
+    ctx.restore();
+}
+
 function drawRectangle(buttonSize, offset = { x: 0, y: 0 }, colour) {
 
     let fill = colour || 'hsla(320, 100%, 83%, 0.50)';
@@ -1853,6 +1869,7 @@ function gameLoop(timestamp) {
 
     // Draw the UI elements last, so they appear on top
     drawMiniMap();
+    drawHUD();
     drawRectangle(actionBtnSize, { x: 0, y: 0 }, 'hsla(64, 100%, 82%, 0.5)');
     drawRectangle(pauseBtnSize);
     drawPauseIcon(pauseBtnIcon);
@@ -2052,6 +2069,12 @@ function handlePointerDown(event) {
     // Handle pause button click
     if (!state.game_over && isUIButtonClicked(pauseBtnSize)) {
         state.game_paused = !state.game_paused;
+        if (state.game_paused) {
+            state.timer.pausedAt = Date.now();
+        } else if (state.timer.pausedAt) {
+            state.timer.totalPausedMs += Date.now() - state.timer.pausedAt;
+            state.timer.pausedAt = null;
+        }
         console.log('Game paused:', state.game_paused);
     }
 
@@ -2093,8 +2116,9 @@ function handlePointerDown(event) {
         return distance <= asteroid.radius;
     });
 
-    // Start shooting if pointer is outside center circle
-    if (!state.game_over && !isInCenterCircle && !isUIButtonClicked(actionBtnSize)) {
+    // Start shooting if pointer is outside center circle and not on any UI button
+    const isOnUIButton = isUIButtonClicked(actionBtnSize) || isUIButtonClicked(pauseBtnSize) || isUIButtonClicked(cargoBtnSize);
+    if (!state.game_over && !isInCenterCircle && !isOnUIButton) {
         // Rotate ship to face mouse position before shooting
         input.isShooting = true;
         ship.setRotation(ui.mouseX, ui.mouseY);
@@ -2186,6 +2210,7 @@ function spawnInitialContainers() {
         containers.push(container);
         entities.push(container);
     }
+    state.initialContainerCount = containers.length;
     console.log('containers spawned:', containers.length);
 }
 
@@ -2195,7 +2220,6 @@ function initGame() {
     containers = [];
     scrap = [];
     startTimer(5);
-    message.innerText = state.score;
     dialogue = new Dialogue();
     entities.push(dialogue);
     ship = new Ship();
@@ -2419,6 +2443,8 @@ function startTimer(durationMins) {
     state.timer.startTime = Date.now(); // in milliseconds
     state.timer.duration = durationMins * 60 * 1000; // x minutes in ms
     state.timer.timerExpired = false;
+    state.timer.totalPausedMs = 0;
+    state.timer.pausedAt = null;
 
     // Start a timer that updates every second to show score and remaining time
     if (state.timer.interval) {
@@ -2426,16 +2452,14 @@ function startTimer(durationMins) {
     }
 
     state.timer.interval = setInterval(() => {
-        if (!isTimerExpired()) {
-            // Update the message with score and timer
-            const timeFormatted = checkTimer();
-            message.innerText = `${state.score} | Timer: ${timeFormatted}`;
-        }
-    }, 1000); // Update every second
+        isTimerExpired();
+    }, 1000); // Check expiry every second
 }
 
 function checkTimer() {
-    const elapsed = Date.now() - state.timer.startTime;
+    const pausedMs = (state.timer.totalPausedMs || 0) +
+        (state.timer.pausedAt ? Date.now() - state.timer.pausedAt : 0);
+    const elapsed = Date.now() - state.timer.startTime - pausedMs;
     const remaining = Math.max(0, state.timer.duration - elapsed);
 
     // Format remaining time
@@ -2453,8 +2477,10 @@ function isTimerExpired() {
         return true;
     }
 
-    // Calculate elapsed time
-    const elapsed = Date.now() - state.timer.startTime;
+    // Calculate effective elapsed time (excluding paused duration)
+    const pausedMs = (state.timer.totalPausedMs || 0) +
+        (state.timer.pausedAt ? Date.now() - state.timer.pausedAt : 0);
+    const elapsed = Date.now() - state.timer.startTime - pausedMs;
 
     // Check if timer has expired
     if (!state.timer.timerExpired && elapsed >= state.timer.duration) {
@@ -2464,8 +2490,6 @@ function isTimerExpired() {
             clearInterval(state.timer.interval);
         }
         console.log("Timer expired! Perform your action here.");
-        // Final update of the message when timer expires
-        message.innerText = `GAME OVER | Final Score: ${state.score}`;
         return true;
     }
 
