@@ -2,32 +2,15 @@
 
 ## Project Overview
 
-**Name:** Solar Game  
-**Type:** Web Game  
-**Framework:** Vanilla JavaScript  
-**Build Tool:** Vite
-
-**Description:** HTML5 Canvas-based asteroids game with advanced features including multiple weapon types, planets, particle effects, and mobile-friendly controls.
+**Description:** HTML5 Canvas-based top-down space game with advanced features including delivery missions, asteroids, planets, particle effects, and mobile-friendly controls, multiple weapon types.
 
 ---
 
 ## Architecture
 
-### Overview
-
-Client-side canvas game with object-oriented design pattern
-
-### Structure
-
-- **Entry Point:** `src/main.js`
-- **Game Logic:** `src/game.js`
-- **Styles:** `src/style.css`
-- **HTML:** `index.html`
-
 ### Design Patterns
 
 - Object-oriented programming with ES6 classes
-- Game loop with delta time
 - Entity-component pattern
 - Camera system with offset tracking
 
@@ -89,16 +72,16 @@ Client-side canvas game with object-oriented design pattern
 
 ### Planned Features
 
-| Feature                         | Description                                                                      | Priority |
-| ------------------------------- | -------------------------------------------------------------------------------- | -------- |
-| **Sound Effects**               | Add audio for shooting, explosions, and background music                         | Medium   |
-| **Power-ups**                   | Collectible items for weapon upgrades, shields, or speed boosts                  | Medium   |
-| **Enemy Ships**                 | AI-controlled enemy ships that shoot back                                        | High     |
-| **Level System**                | Progressive difficulty with waves of asteroids                                   | Medium   |
-| **Minimap**                     | Small map showing world overview (variables exist but not implemented)           | Low      |
-| **Local Storage**               | Save high scores and player preferences                                          | Low      |
-| **Touch Controls Optimization** | Improve mobile touch interface with visual feedback                              | High     |
-| **Weapon Selection UI**         | Better weapon switching interface (weaponButton exists but needs implementation) | Medium   |
+| Feature                   | Description                                                                      | Priority |
+| ------------------------- | -------------------------------------------------------------------------------- | -------- |
+| **Sound Effects**         | Add audio for shooting, explosions, and background music                         | Medium   |
+| **Power-ups**             | Collectible items for weapon upgrades, shields, or speed boosts                  | Medium   |
+| **Enemy Ships**           | AI-controlled enemy ships that shoot back                                        | High     |
+| **Level System**          | Progressive difficulty with waves of asteroids                                   | Medium   |
+| **Minimap**               | Small map showing world overview (variables exist but not implemented)           | Low      |
+| **Local Storage**         | Save high scores and player preferences                                          | Low      |
+| **Touch Controls**        | Improve mobile touch interface with visual feedback                              | High     |
+| **Weapon Selection UI**   | Better weapon switching interface (weaponButton exists but needs implementation) | Medium   |
 
 ---
 
@@ -202,26 +185,6 @@ Client-side canvas game with object-oriented design pattern
 
 ## Development
 
-### Setup Commands
-
-```bash
-# Run development server
-pnpm run dev
-
-# Build for production
-pnpm run build
-```
-
-### Dependencies
-
-**Dev Dependencies:**
-
-- vite: ^6.2.4
-
-**Runtime:**
-
-- Node.js: 22.15.0
-- pnpm: 10.27.0
 
 ### File Structure
 
