@@ -92,3 +92,6 @@ typings/
 
 # dist files
 dist
+
+# Devin temp scripts
+.devin/temp/
