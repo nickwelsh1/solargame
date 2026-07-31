@@ -1,5 +1,6 @@
 # Unrefined Ideas / Scratchpad
 
+> **Purpose:** This is the raw design scratchpad — inspirations, mechanics, and unrefined ideas. (Previously `scratchpad.md`; see `docs/plan.md` for the structured plan and `docs/backlog.md` for actionable tasks.)
 
 ## INSPIRATION
 

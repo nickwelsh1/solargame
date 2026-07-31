@@ -1,5 +1,7 @@
 # Solar Game — AI Context
 
+> **Purpose:** This file gives AI assistants a concise, up-to-date overview of the project, run commands, architecture, conventions, and key file pointers. Keep it updated when project structure changes.
+
 ## Project at a glance
 
 - **Name:** `solargame`
@@ -82,7 +84,7 @@ Destroy asteroids (score) and protect/salvage cargo containers. Timer is current
 
 ## Known issues & TODOs
 
-Full list of bugs, planned features, and brainstorming is in `windsurf.plan.md` and `scratchpad.md`.
+The active bug and task list is in `docs/backlog.md`, the structured plan is in `docs/plan.md`, and brainstorming is in `docs/scratchpad.md`.
 
 ## Coding conventions
 
@@ -101,6 +103,7 @@ Full list of bugs, planned features, and brainstorming is in `windsurf.plan.md` 
 - `src/game.js` — primary logic
 - `src/style.css` — basic canvas styling
 - `index.html` — app shell
-- `windsurf.plan.md` — project plan, features, priorities
-- `scratchpad.md` — design ideas and inspirations
+- `docs/plan.md` — project plan, features, priorities
+- `docs/backlog.md` — active bugs and tasks
+- `docs/scratchpad.md` — design ideas and inspirations
 - `README.md` — run commands
