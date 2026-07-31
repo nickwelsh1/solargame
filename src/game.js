@@ -1601,7 +1601,7 @@ function drawCargoButton() {
         ? 'hsla(120, 80%, 35%, 0.85)'
         : canPickup ? 'hsla(55, 100%, 45%, 0.75)' : 'hsla(0, 0%, 35%, 0.45)';
     drawRectangle(game.cargoBtnSize, { x: 0, y: 0 }, colour);
-    game.ctx.font = `bold ${Math.round(cargoBtnSize.height * 0.3)}px sans-serif`;
+    game.ctx.font = `bold ${Math.round(game.cargoBtnSize.height * 0.3)}px sans-serif`;
     game.ctx.textAlign = 'center';
     game.ctx.textBaseline = 'middle';
     game.ctx.fillStyle = 'white';
@@ -1686,7 +1686,7 @@ function drawControlsScreen() {
     game.ctx.textAlign = 'center';
     game.ctx.textBaseline = 'middle';
     game.ctx.fillStyle = 'hsla(40, 100%, 70%, 1)';
-    game.ctx.font = `bold ${Math.round(camera.height * 0.07)}px sans-serif`;
+    game.ctx.font = `bold ${Math.round(game.camera.height * 0.07)}px sans-serif`;
     game.ctx.fillText('CONTROLS', game.camera.width / 2, game.camera.height * 0.14);
     // Control list
     const items = [
@@ -1729,8 +1729,8 @@ function drawHUD() {
     game.ctx.shadowColor = 'rgba(0,0,0,0.7)';
     game.ctx.shadowBlur = 6;
     game.ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    game.ctx.fillText(`Score: ${state.score}   |   ${timeText}`, game.camera.width / 2, 10);
-    game.ctx.fillText(`${remaining}/${state.initialContainerCount} containers   |   ${planets.length} planets`, game.camera.width / 2, 10 + lineH);
+    game.ctx.fillText(`Score: ${game.state.score}   |   ${timeText}`, game.camera.width / 2, 10);
+    game.ctx.fillText(`${remaining}/${game.state.initialContainerCount} containers   |   ${game.planets.length} planets`, game.camera.width / 2, 10 + lineH);
     game.ctx.restore();
 }
 
