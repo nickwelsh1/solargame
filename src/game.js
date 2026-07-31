@@ -1,4 +1,11 @@
 import { addVelocities, checkCircleCollision } from './utils/physics.js';
+import {
+    randomMinMax,
+    calculateNewPosition,
+    logarithmicIncrease,
+    countObjectProperties,
+    checkBoundsRect,
+} from './utils/helpers.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -89,9 +96,7 @@ const shipImg = loadSVGString(shipSVG3);
 
 
 
-function randomMinMax(min = 0, max) {
-    return Math.random() * (max - min) + min;
-}
+
 
 
 
@@ -2275,62 +2280,14 @@ function isPointOverAsteroid(x, y) {
     });
 }
 
-function calculateNewPosition(x, y, angle, speed, maxSpeed, deltaTime) {
-    // Convert angle to radians
-    // const angleRadians = angle * (Math.PI / 180);
-    const angleRadians = angle;
-
-    // Calculate velocity components
-    const velocityX = logarithmicIncrease(speed, 0.1, maxSpeed) * Math.cos(angleRadians);
-    const velocityY = logarithmicIncrease(speed, 0.1, maxSpeed) * Math.sin(angleRadians);
-
-    // Update position
-    const newX = x + velocityX * deltaTime;
-    const newY = y + velocityY * deltaTime;
-
-    return { x: newX, y: newY };
-}
 
 
-function logarithmicIncrease(currentValue, step, max) {
-    // Prevent division by zero
-    if (currentValue <= 0) {
-        return currentValue;
-    }
 
-    // Calculate the new value based on the logarithmic function
-    const newValue = Math.min(max, currentValue * Math.pow(1.1, step));
-    return newValue;
-}
 
-function countObjectProperties(obj) {
-    let count = 0;
 
-    // Iterate over object properties using for...in loop
-    for (let property in obj) {
-        // Check if the property is not a prototype property
-        if (obj.hasOwnProperty(property)) {
-            count++;
-        }
-    }
 
-    return count;
-}
 
-function checkBoundsRect(point, rect) {
-    // point expect point.x, point.y
-    // rect expect rect.x, rect.y, rect.h, rect.w
-    // what is anchor of rect x, y ?? lets assume top-left?
-    // validate
-    if (countObjectProperties(point) !== 2 || countObjectProperties(rect) !== 4) {
-        return false;
-    }
-    const checkX = (point.x > rect.x && point.x < (rect.x + rect.w));
-    const checkY = (point.y > rect.y && point.y < (rect.y + rect.h));
-    // console.log(`checkX ${checkX}, checkY ${checkY}`);
 
-    return (checkX && checkY); // both must be true to return true
-}
 
 
 function isUIButtonClicked(buttonSize) {
