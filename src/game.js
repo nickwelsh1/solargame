@@ -1,3 +1,4 @@
+import { Renderer } from './renderer.js';
 import { addVelocities, checkCircleCollision } from './utils/physics.js';
 import { World } from './world.js';
 import { Camera } from './camera.js';
@@ -19,8 +20,9 @@ class Game {
     constructor() {
         this.lastTime = 0;
 
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
+        this.renderer = new Renderer();
+        this.canvas = this.renderer.canvas;
+        this.ctx = this.renderer.ctx;
         this.weaponButton = document.getElementById('weaponButton');
         this.message = document.querySelector('.message');
         this.debugEl = initDebugArea();
@@ -166,7 +168,7 @@ class Game {
     }
 
     init() {
-        this.shipImg = loadSVGString(shipSVG3);
+        this.shipImg = this.renderer.loadSVGString(shipSVG3);
         this.resetBtnSize = {
             width: this.camera.width * (isMobile() ? 0.55 : 0.25),
             height: this.camera.height * 0.09,
@@ -509,7 +511,7 @@ class Ship {
         // ctx.fillStyle = 'white';
         // ctx.fill();
         game.ctx.translate(-8, 0);
-        drawSVGImg(game.shipImg, CONFIG.MOBILE_SCALE * 0.7);
+        game.renderer.drawSVGImg(game.shipImg, CONFIG.MOBILE_SCALE * 0.7);
         game.ctx.restore();
     }
 
@@ -1557,251 +1559,27 @@ function handleCollisions() {
 
 
 
-function drawWorldBorder() {
-    game.ctx.strokeStyle = 'hsl(220, 60%, 30%)';
-    game.ctx.lineWidth = 4;
-    game.ctx.strokeRect(-game.cameraOffset.x, -game.cameraOffset.y, game.world.width, game.world.height);
-}
 
 
 //////
-function drawMiniMap() {
-
-    const minimapSize = {
-        width: game.MINIMAP_SCALE,
-        height: game.world.height / game.world.width * game.MINIMAP_SCALE
-    };
-
-    // message.innerText = `| map ${MINIMAP_MARGIN}`;
-
-    // Save the current context state
-    game.ctx.save();
-
-    // Set up the mini-map area
-    game.ctx.lineWidth = 1;
-    game.ctx.fillStyle = 'rgba(0, 0, 3, 0.5)';
-    game.ctx.fillRect(game.MINIMAP_MARGIN, game.MINIMAP_MARGIN, minimapSize.width, minimapSize.height);
-
-    // Draw mini world border
-    game.ctx.strokeStyle = 'hsl(221, 12.20%, 45.10%)';
-    game.ctx.strokeRect(game.MINIMAP_MARGIN, game.MINIMAP_MARGIN, minimapSize.width, minimapSize.height);
-    game.ctx.fill();
-
-    // Calculate the scale factor for objects within the mini-map
-    const scaleFactor = minimapSize.width / game.world.width;
-
-    // Draw mini asteroids
-    game.asteroids.forEach(asteroid => {
-        game.ctx.fillStyle = `hsl(0, 100%, 59%)`;
-        game.ctx.fillRect(game.MINIMAP_MARGIN + asteroid.x * scaleFactor, game.MINIMAP_MARGIN + asteroid.y * scaleFactor, 2, 2);
-        // ctx.beginPath();
-        // ctx.arc(
-        //     MINIMAP_MARGIN + asteroid.x * scaleFactor,
-        //     MINIMAP_MARGIN + asteroid.y * scaleFactor,
-        //     2,
-        //     0,
-        //     Math.PI * 2
-        // );
-        game.ctx.fill();
-    });
-
-    // Draw discovered containers
-    game.containers.forEach(container => {
-        if (container.discovered) {
-            game.ctx.fillStyle = 'yellow';
-            game.ctx.fillRect(game.MINIMAP_MARGIN + container.x * scaleFactor - 1, game.MINIMAP_MARGIN + container.y * scaleFactor - 1, 3, 3);
-        }
-    });
-
-    // Draw mini planets
-    game.planets.forEach(planet => {
-        game.ctx.fillStyle = 'cyan';
-        game.ctx.fillRect(game.MINIMAP_MARGIN + planet.x * scaleFactor, game.MINIMAP_MARGIN + planet.y * scaleFactor, 4, 4);
-    });
-
-    // Draw mini ship
-    game.ctx.fillStyle = 'yellow';
-    game.ctx.fillRect(game.MINIMAP_MARGIN + game.ship.x * scaleFactor, game.MINIMAP_MARGIN + game.ship.y * scaleFactor, 2, 2);
-    // ctx.beginPath();
-    // ctx.arc(
-    //     MINIMAP_MARGIN + ship.x * scaleFactor,
-    //     MINIMAP_MARGIN + ship.y * scaleFactor,
-    //     3,
-    //     0,
-    //     Math.PI * 2
-    // );
-    game.ctx.fill();
-
-    // Draw mini view area
-    game.ctx.lineWidth = 1;
-    game.ctx.strokeStyle = 'hsla(170, 60%, 30%, 0.4)';
-    game.ctx.strokeRect(
-        game.MINIMAP_MARGIN + (game.ship.x - game.camera.width / 2) * scaleFactor,
-        game.MINIMAP_MARGIN + (game.ship.y - game.camera.height / 2) * scaleFactor,
-        game.camera.width * scaleFactor,
-        game.camera.height * scaleFactor
-    );
-
-    // Restore the context state
-    game.ctx.restore();
-}
 ///////
 
 
 
-function drawPauseIcon() {
-    drawRectangle(game.pauseBtnIcon);
-    drawRectangle(game.pauseBtnIcon, { x: game.CENTER_CIRCLE_RADIUS * 0.76, y: 0 });
-}
 
 
-function drawCargoButton() {
-    const hasTowed = game.ship && game.ship.towedContainer !== null;
-    const nearbyContainer = game.containers.find(c => !c.isTowed && Math.hypot(game.ship.x - c.x, game.ship.y - c.y) < 80);
-    const canPickup = !hasTowed && nearbyContainer;
-    const colour = hasTowed
-        ? 'hsla(120, 80%, 35%, 0.85)'
-        : canPickup ? 'hsla(55, 100%, 45%, 0.75)' : 'hsla(0, 0%, 35%, 0.45)';
-    drawRectangle(game.cargoBtnSize, { x: 0, y: 0 }, colour);
-    game.ctx.font = `bold ${Math.round(game.cargoBtnSize.height * 0.3)}px sans-serif`;
-    game.ctx.textAlign = 'center';
-    game.ctx.textBaseline = 'middle';
-    game.ctx.fillStyle = 'white';
-    game.ctx.fillText(
-        hasTowed ? 'DROP' : 'PICK',
-        game.cargoBtnSize.posX + game.cargoBtnSize.width / 2,
-        game.cargoBtnSize.posY + game.cargoBtnSize.height / 2
-    );
-}
 
 
-function drawMenuBackground() {
-    const bg = game.ctx.createLinearGradient(0, 0, 0, game.camera.height);
-    bg.addColorStop(0.0, '#7A4827');
-    bg.addColorStop(0.33, '#772F1F');
-    bg.addColorStop(0.66, '#5D1E18');
-    bg.addColorStop(1.0, '#401111');
-    game.ctx.fillStyle = bg;
-    game.ctx.fillRect(0, 0, game.camera.width, game.camera.height);
-}
 
-function drawMenuButton(btnSize, label, active) {
-    game.ctx.fillStyle = active ? 'hsla(40, 100%, 60%, 0.85)' : 'hsla(0, 0%, 100%, 0.12)';
-    game.ctx.strokeStyle = active ? 'hsla(40, 100%, 75%, 1)' : 'rgba(255,255,255,0.35)';
-    game.ctx.lineWidth = 2;
-    game.ctx.fillRect(btnSize.posX, btnSize.posY, btnSize.width, btnSize.height);
-    game.ctx.strokeRect(btnSize.posX, btnSize.posY, btnSize.width, btnSize.height);
-    game.ctx.font = `bold ${Math.round(btnSize.height * 0.38)}px sans-serif`;
-    game.ctx.textAlign = 'center';
-    game.ctx.textBaseline = 'middle';
-    game.ctx.fillStyle = active ? '#1a0a00' : 'white';
-    game.ctx.fillText(label, btnSize.posX + btnSize.width / 2, btnSize.posY + btnSize.height / 2);
-}
 
-function drawMainMenu() {
-    drawMenuBackground();
-    // Title
-    game.ctx.textAlign = 'center';
-    game.ctx.textBaseline = 'middle';
-    game.ctx.fillStyle = 'hsla(40, 100%, 70%, 1)';
-    const titleSize = Math.min(Math.round(game.camera.height * 0.09), Math.round(game.camera.width * 0.11));
-    game.ctx.font = `bold ${titleSize}px sans-serif`;
-    game.ctx.fillText('SOLAR GAME', game.camera.width / 2, game.camera.height * 0.25);
-    // Subtitle
-    game.ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    const subSize = Math.round(game.camera.height * 0.03);
-    game.ctx.font = `${subSize}px sans-serif`;
-    const subtitle = 'navigate · salvage · survive';
-    const subY = game.camera.height * 0.34;
-    if (game.ctx.measureText(subtitle).width > game.camera.width * 0.82) {
-        game.ctx.fillText('navigate · salvage', game.camera.width / 2, subY - subSize * 0.7);
-        game.ctx.fillText('· survive', game.camera.width / 2, subY + subSize * 0.7);
-    } else {
-        game.ctx.fillText(subtitle, game.camera.width / 2, subY);
-    }
-    // Buttons
-    const nearStart = isUIButtonClicked(game.menuStartBtnSize);
-    const nearCtrl = isUIButtonClicked(game.menuControlsBtnSize);
-    drawMenuButton(game.menuStartBtnSize, 'START GAME', nearStart);
-    drawMenuButton(game.menuControlsBtnSize, 'CONTROLS', nearCtrl);
-}
 
-function drawControlsScreen() {
-    drawMenuBackground();
-    // Title
-    game.ctx.textAlign = 'center';
-    game.ctx.textBaseline = 'middle';
-    game.ctx.fillStyle = 'hsla(40, 100%, 70%, 1)';
-    game.ctx.font = `bold ${Math.round(game.camera.height * 0.07)}px sans-serif`;
-    game.ctx.fillText('CONTROLS', game.camera.width / 2, game.camera.height * 0.14);
-    // Control list
-    const items = [
-        ['Tap / Click', 'Move ship toward cursor'],
-        ['Hold center circle', 'Brake'],
-        ['Weapon button', 'Cycle weapons'],
-        ['Pause button', 'Pause / Unpause'],
-        ['PICK button', 'Pick up nearby cargo container'],
-        ['DROP button', 'Drop towed cargo container'],
-    ];
-    const lineH = Math.min(game.camera.height * 0.072, 46);
-    const startY = game.camera.height * 0.26;
-    const colLabel = game.camera.width * 0.08;
-    const colDesc = game.camera.width * 0.52;
-    const fontSize = Math.round(lineH * 0.38);
-    game.ctx.textBaseline = 'middle';
-    items.forEach(([label, desc], i) => {
-        const y = startY + i * lineH;
-        game.ctx.textAlign = 'left';
-        game.ctx.font = `bold ${fontSize}px sans-serif`;
-        game.ctx.fillStyle = 'hsla(40, 100%, 65%, 1)';
-        game.ctx.fillText(label, colLabel, y);
-        game.ctx.font = `${fontSize}px sans-serif`;
-        game.ctx.fillStyle = 'rgba(255,255,255,0.75)';
-        game.ctx.fillText(desc, colDesc, y);
-    });
-    // Back button
-    drawMenuButton(game.menuBackBtnSize, 'BACK', isUIButtonClicked(game.menuBackBtnSize));
-}
 
-function drawHUD() {
-    const timeText = (game.state.timer.timerExpired || !game.state.timer.startTime) ? '00:00' : checkTimer();
-    const fontSize = Math.min(Math.round(Math.min(game.camera.height * 0.038, game.camera.width * 0.045)), 16);
-    const lineH = fontSize * 1.5;
-    const remaining = game.containers.filter(c => !c.destroyed).length;
-    game.ctx.save();
-    game.ctx.textAlign = 'center';
-    game.ctx.textBaseline = 'top';
-    game.ctx.font = `bold ${fontSize}px sans-serif`;
-    game.ctx.shadowColor = 'rgba(0,0,0,0.7)';
-    game.ctx.shadowBlur = 6;
-    game.ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    game.ctx.fillText(`Score: ${game.state.score}   |   ${timeText}`, game.camera.width / 2, 10);
-    game.ctx.fillText(`${remaining}/${game.state.initialContainerCount} containers   |   ${game.planets.length} planets`, game.camera.width / 2, 10 + lineH);
-    game.ctx.restore();
-}
 
-function drawRectangle(buttonSize, offset = { x: 0, y: 0 }, colour) {
-
-    let fill = colour || 'hsla(320, 100%, 83%, 0.50)';
-    // Stroke style
-    game.ctx.fillStyle = fill;
-    game.ctx.strokeStyle = 'pink';
-    game.ctx.lineWidth = 2;
-    // Draw the rectangle fill
-    game.ctx.fillRect(buttonSize.posX + offset.x, buttonSize.posY + offset.y, buttonSize.width, buttonSize.height);
-    // Draw the rectangle stroke
-    game.ctx.strokeRect(buttonSize.posX + offset.x, buttonSize.posY + offset.y, buttonSize.width, buttonSize.height);
-}
 
 Game.prototype.menuLoop = function () {
-    if (game.state.screen === 'menu') {
-        drawMainMenu();
-    } else if (game.state.screen === 'controls') {
-        drawControlsScreen();
-    }
-    drawCursorDot(false);
-    if (game.state.screen !== 'game') {
-        requestAnimationFrame(() => game.menuLoop());
+    this.renderer.draw(this);
+    if (this.state.screen !== 'game') {
+        requestAnimationFrame(() => this.menuLoop());
     }
 };
 
@@ -1898,113 +1676,9 @@ Game.prototype.loop = function (timestamp) {
         // (braking is triggered on tap, see handlePointerDown)
     }
 
-    // ===== DRAW PHASE (always runs) =====
-    drawWorldBorder();
-
-    // Draw particles
-    game.particles.forEach(particle => {
-        particle.draw();
-    });
-
-    // Draw planet
-    game.planets.forEach(planet => {
-        planet.draw();
-    });
-
-    // Draw scrap
-    game.scrap.forEach(s => {
-        s.draw();
-    });
-
-    // Draw free containers (towed container is drawn by ship.draw)
-    game.containers.forEach(container => {
-        if (!container.isTowed) container.draw();
-    });
-
-    // Draw ship
-    game.ship.draw();
-
-    // Draw asteroids
-    game.asteroids.forEach(asteroid => {
-        asteroid.draw();
-    });
-
-    // Draw projectiles
-    game.projectiles.forEach(projectile => {
-        projectile.draw();
-    });
-
-    // Draw beams
-    game.beams.forEach(beam => {
-        beam.draw();
-    });
-
-    // Draw the UI elements last, so they appear on top
-    drawMiniMap();
-    drawHUD();
-    drawRectangle(game.actionBtnSize, { x: 0, y: 0 }, 'hsla(64, 100%, 82%, 0.5)');
-    drawRectangle(game.pauseBtnSize);
-    drawPauseIcon(game.pauseBtnIcon);
-    drawCargoButton();
-
-    drawCenterCircle(game.CENTER_CIRCLE_RADIUS);
-    drawCenterCircle(game.CENTER_LOWTHRUST_RADIUS);
-    drawCenterCircle(game.CENTER_MAXTHRUST_RADIUS);
-
-    // Draw visual feedback line if dragging from center
-    if (game.input.isDraggingFromCenter && game.input.isMouseDown) {
-        const currentTime = performance.now();
-
-        drawDragFromCenterLine();
-
-        // Visual feedback for braking
-        if (game.input.isBraking) {
-            const brakeProgress = Math.min(1, (currentTime - game.input.brakeStartTime) / 1000);
-            drawBrakingEffect(brakeProgress);
-        }
-    }
-
-    // Draw dialogue
-    game.dialogue.draw();
-
-    // Draw cursor
-    const isOverAsteroid = isPointOverAsteroid(game.ui.mouseX, game.ui.mouseY);
-
-    if (isOverAsteroid) {
-        const squareSize = 22;
-        game.ctx.strokeStyle = 'yellow';
-        game.ctx.lineWidth = 1;
-        game.ctx.strokeRect(
-            game.ui.mouseX - squareSize / 2,
-            game.ui.mouseY - squareSize / 2,
-            squareSize,
-            squareSize
-        );
-    }
-
-    drawCursorDot(isOverAsteroid);
+    this.renderer.draw(this, timestamp);
 
     requestAnimationFrame((timestamp) => game.loop(timestamp));
-
-    function drawDragFromCenterLine() {
-        game.ctx.save();
-        game.ctx.beginPath();
-        game.ctx.moveTo(game.camera.width / 2, game.camera.height / 2); // Start from center of camera
-        game.ctx.lineTo(game.ui.mouseX, game.ui.mouseY); // End at current mouse position
-        game.ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-        game.ctx.lineWidth = 2;
-        game.ctx.stroke();
-        game.ctx.restore();
-    }
-
-    function drawBrakingEffect(brakeProgress) {
-        game.ctx.save();
-        game.ctx.beginPath();
-        game.ctx.arc(game.camera.width / 2, game.camera.height / 2, game.CENTER_CIRCLE_RADIUS * brakeProgress, 0, Math.PI * 2);
-        game.ctx.fillStyle = `rgba(200, 200, 200, ${0.3 + (brakeProgress * 0.3)})`;
-        game.ctx.fill();
-        game.ctx.restore();
-    }
 };
 
 
@@ -2223,17 +1897,6 @@ function handlePointerUp() {
     console.log('pointer up');
 }
 
-function drawCursorDot(isOverAsteroid) {
-    // Draw contrail first
-    game.mouseContrail.draw();
-
-    // Then draw the cursor dot
-    game.ctx.beginPath();
-    game.ctx.rect(game.ui.mouseX - 3, game.ui.mouseY - 3, 6, 6);
-    game.ctx.fillStyle = isOverAsteroid ? 'yellow' : 'white';
-    game.ctx.fill();
-    game.ctx.closePath();
-}
 
 function clearEntities() {
     // console.log('the entities', entities);
@@ -2364,6 +2027,10 @@ function isMobile() {
     return (mobileChance > 2);
 }
 
+Game.prototype.isUIButtonClicked = isUIButtonClicked;
+Game.prototype.checkTimer = checkTimer;
+Game.prototype.isPointOverAsteroid = isPointOverAsteroid;
+
 export { Game, game };
 
 if (isMobile()) {
@@ -2371,53 +2038,9 @@ if (isMobile()) {
     debug('Mobile device detected');
 }
 
-function loadSVGString(svgString) {
-    // Get the canvas element
-    // const canvas = document.getElementById(canvasId);
 
-    // Create a new image element
-    const img = new Image();
-
-    // Set the image source to the SVG string
-    // img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);   // 
-    img.src = 'data:image/svg+xml;charset=utf-8,' + svgString;
-
-    // Load the image
-    img.onload = function () {
-        drawSVGImg(img);
-    };
-
-    return img;
-}
-
-function drawSVGImg(img, scale = 1) {
-    // Draw the image onto the canvas
-    // const ctx = canvas.getContext('2d');
-    game.ctx.rotate((90 * Math.PI) / 180);
-    game.ctx.scale(0.25 * scale, 0.25 * scale);
-    game.ctx.translate(-154, -206);
-    game.ctx.drawImage(img, 1, 1, 300, 300);
-    game.ctx.translate(154, 206);
-    game.ctx.scale(4, 4);
-    game.ctx.rotate((-90 * Math.PI) / 180);
-    // perhaps timing issue. load svg once. When ready use it?
-}
 
 // Function to draw a white circle at the center of the camera
-function drawCenterCircle(radius) {
-    const centerX = game.camera.width / 2;
-    const centerY = game.camera.height / 2;
-
-    game.ctx.save();
-    game.ctx.beginPath();
-    game.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    // ctx.fillStyle = 'white';
-    // ctx.fill();
-    game.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    game.ctx.lineWidth = 0.5;
-    game.ctx.stroke();
-    game.ctx.restore();
-}
 
 function startTimer(durationMins) {
     game.state.timer.startTime = Date.now(); // in milliseconds
