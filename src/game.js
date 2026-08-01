@@ -3,6 +3,8 @@ import { World } from './world.js';
 import { Camera } from './camera.js';
 import { State } from './state.js';
 import { Input } from './input.js';
+import { Player } from './player.js';
+import { UI } from './ui.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -138,24 +140,10 @@ class Game {
         // Input State
         this.input = new Input();
 
-        this.ui = {
-            mouseX: 0,
-            mouseY: 0,
-            dialogueText: '',
-        }
+        this.ui = new UI();
         this.rectangleDrawTimer = null; // legacy?
 
-        this.player = {
-            currentWeapon: 'machineGun',
-            BULLET_FIRE_RATE: 100,  // 100ms between shots
-            MISSILE_FIRE_RATE: 500, // 500ms between shots
-            LASER_FIRE_RATE: 1000,  // 1000ms between shots
-            BEAM_FIRE_RATE: 800,    // 800ms between shots
-            lastLaserFireTime: 0,
-            lastBulletFireTime: 0,
-            lastMissileFireTime: 0,
-            lastBeamFireTime: 0,
-        }
+        this.player = new Player();
     }
 
     resize() {
