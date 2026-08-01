@@ -1,5 +1,5 @@
-import { Scrap } from '../game.js';
 import { randomMinMax } from '../utils/helpers.js';
+import { Scrap } from './Scrap.js';
 
 export class CargoContainer {
     constructor(game) {

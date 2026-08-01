@@ -1,3 +1,5 @@
+import * as assets from './assets.js';
+
 export class Renderer {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
@@ -390,36 +392,8 @@ export class Renderer {
         this.ctx.closePath();
     }
 
-    loadSVGString(svgString) {
-        // Get the canvas element
-        // const canvas = document.getElementById(canvasId);
-
-        // Create a new image element
-        const img = new Image();
-
-        // Set the image source to the SVG string
-        // img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);   //
-        img.src = `data:image/svg+xml;charset=utf-8,${svgString}`;
-
-        // Load the image
-        img.onload = () => {
-            this.drawSVGImg(img);
-        };
-
-        return img;
-    }
-
     drawSVGImg(img, scale = 1) {
-        // Draw the image onto the canvas
-        // const ctx = canvas.getContext('2d');
-        this.ctx.rotate((90 * Math.PI) / 180);
-        this.ctx.scale(0.25 * scale, 0.25 * scale);
-        this.ctx.translate(-154, -206);
-        this.ctx.drawImage(img, 1, 1, 300, 300);
-        this.ctx.translate(154, 206);
-        this.ctx.scale(4, 4);
-        this.ctx.rotate((-90 * Math.PI) / 180);
-        // perhaps timing issue. load svg once. When ready use it?
+        assets.drawSVGImg(this.ctx, img, scale);
     }
 
     drawCenterCircle(radius) {

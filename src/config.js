@@ -1,0 +1,7 @@
+export const CONFIG = Object.freeze({
+    MOBILE_SCALE: 0.55,
+    MAX_ENTITIES: 200,
+    PARTICLE_COUNT: 400,
+    MIN_ASTEROID_SIZE: 10,
+    INITIAL_ASTEROID_COUNT: 20,
+});
