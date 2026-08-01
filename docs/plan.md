@@ -12,7 +12,10 @@
 
 ### Design Patterns
 
-- Object-oriented programming with ES6 classes
+- **ES modules** with explicit `import`/`export`.
+- **Factory functions**, not classes. Use `createX(game, ...)` and return plain objects.
+- **Pass `game` explicitly** to system/entity functions; avoid `this` in new code.
+- ES6 classes
 - Entity-component pattern
 - Camera system with offset tracking
 
