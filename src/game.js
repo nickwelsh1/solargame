@@ -54,6 +54,90 @@ class Game {
         this.CENTER_MAXTHRUST_RADIUS = 0.5 * Math.min(this.camera.width, this.camera.height) - 8;  // Radius of the central UI circle for interaction
         this.CENTER_LOWTHRUST_RADIUS = 0.5 * this.CENTER_MAXTHRUST_RADIUS + (0.5 * this.CENTER_CIRCLE_RADIUS);  // Radius of the central UI circle for interaction
 
+        this.mouseContrail = {
+            points: [],
+            lastUpdateTime: 0,
+            updateInterval: 30, // 50ms between updates
+            pointLifespan: 100, // 100ms lifespan for each point
+
+            addPoint(x, y) {
+                const currentTime = performance.now();
+                if (currentTime - this.lastUpdateTime >= this.updateInterval) {
+                    this.points.push({ x, y, timestamp: currentTime });
+                    this.lastUpdateTime = currentTime;
+                }
+            },
+
+            update() {
+                const currentTime = performance.now();
+                // Filter out points that exceed lifespan
+                this.points = this.points.filter(point => currentTime - point.timestamp <= this.pointLifespan);
+            },
+
+            draw() {
+                if (this.points.length < 2) return;
+
+                game.ctx.beginPath();
+                game.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                game.ctx.lineWidth = 2;
+
+                // Start from the oldest point
+                game.ctx.moveTo(this.points[0].x, this.points[0].y);
+
+                // Draw lines to each subsequent point
+                for (let i = 1; i < this.points.length; i++) {
+                    game.ctx.lineTo(this.points[i].x, this.points[i].y);
+                    // Gradually increase opacity for newer points
+                    game.ctx.strokeStyle = `rgba(255, 255, 255, ${i / this.points.length * 0.5})`;
+                    game.ctx.stroke();
+                    game.ctx.beginPath();
+                    game.ctx.moveTo(this.points[i].x, this.points[i].y);
+                }
+            }
+        };
+
+        this.actionBtnSize = {
+            // button dimensions
+            width: ((this.camera.width < 800) ? this.camera.width * 0.2 : this.camera.width * 0.1),
+            height: this.camera.height * 0.1,
+            // Calculate rectangle position in bottom left corner
+            posX: 10,
+            posY: this.camera.height - (this.camera.height * 0.1 + 10),
+        }
+
+        this.pauseBtnSize = {
+            // button dimensions - same size as action button
+            width: ((this.camera.width < 800) ? this.camera.width * 0.2 : this.camera.width * 0.1),
+            height: this.camera.height * 0.1,
+            // Position 10px above the action button
+            posX: 10,
+            posY: this.camera.height - (this.camera.height * 0.1 + 10) - (this.camera.height * 0.1 + 10),
+        }
+
+        this.pauseBtnIcon = {
+            // icon dimensions
+            width: this.CENTER_CIRCLE_RADIUS * 0.5,
+            height: this.CENTER_CIRCLE_RADIUS,
+            // icon position
+            posX: this.pauseBtnSize.posX + 10,
+            posY: this.pauseBtnSize.posY + 10,
+        }
+
+        this.cargoBtnSize = {
+            width: ((this.camera.width < 800) ? this.camera.width * 0.2 : this.camera.width * 0.1),
+            height: this.camera.height * 0.1,
+            posX: 10,
+            posY: this.camera.height - (this.camera.height * 0.1 + 10) * 3,
+        };
+
+        this._menuBtnW = Math.min(308, this.camera.width * 0.66);
+        this._menuBtnH = Math.max(50, this.camera.height * 0.09);
+        this._menuBtnX = this.camera.width / 2 - this._menuBtnW / 2;
+
+        this.menuStartBtnSize = { width: this._menuBtnW, height: this._menuBtnH, posX: this._menuBtnX, posY: this.camera.height * 0.48 };
+        this.menuControlsBtnSize = { width: this._menuBtnW, height: this._menuBtnH, posX: this._menuBtnX, posY: this.camera.height * 0.60 };
+        this.menuBackBtnSize = { width: this._menuBtnW * 0.6, height: this._menuBtnH, posX: this.camera.width / 2 - this._menuBtnW * 0.3, posY: this.camera.height * 0.82 };
+
         // Input State
         this.input = {
             isDraggingFromCenter: false,  // For new drag-from-center movement
@@ -108,6 +192,16 @@ class Game {
         this.state.screen = 'menu';
         requestAnimationFrame(() => game.menuLoop());
     }
+
+    init() {
+        this.shipImg = loadSVGString(shipSVG3);
+        this.resetBtnSize = {
+            width: this.camera.width * (isMobile() ? 0.55 : 0.25),
+            height: this.camera.height * 0.09,
+            posX: this.camera.width / 2 - (this.camera.width * (isMobile() ? 0.55 : 0.25)) / 2,
+            posY: this.camera.height / 2 + this.camera.height * 0.07 - this.camera.height * 0.045,
+        };
+    }
 }
 
 const CONFIG = Object.freeze({
@@ -118,8 +212,6 @@ const CONFIG = Object.freeze({
     INITIAL_ASTEROID_COUNT: 20,
 });
 
-game = new Game();
-
 const shipSVG2 = `
 <svg xmlns="http://www.w3.org/2000/svg" width="62" height="62"> <polygon points="34,12 26,30 28,32 32,30 30,32 30,32 34,30 34,32 36,32 36,30 38,32 38,32 38,30 42,32 44,32" fill=grey /> </svg>
 `;
@@ -128,7 +220,8 @@ const shipSVG3 = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="62" height="62"> <path d="m16 1-5 14-9 10 3 2 3-2 4 2v3l1.6-1.1.5 1.2L16 30h1.9l.5-1.1L20 30v-3l4-2 3 2 3-2-9-10z" style="fill:hsl(200 20% 20%)"/> </svg>
 `;
 
-game.shipImg = loadSVGString(shipSVG3);
+game = new Game();
+game.init();
 
 
 
@@ -1582,44 +1675,13 @@ function drawMiniMap() {
 }
 ///////
 
-game.actionBtnSize = {
-    // button dimensions
-    width: ((game.camera.width < 800) ? game.camera.width * 0.2 : game.camera.width * 0.1),
-    height: game.camera.height * 0.1,
-    // Calculate rectangle position in bottom left corner
-    posX: 10,
-    posY: game.camera.height - (game.camera.height * 0.1 + 10),
-}
 
-game.pauseBtnSize = {
-    // button dimensions - same size as action button
-    width: ((game.camera.width < 800) ? game.camera.width * 0.2 : game.camera.width * 0.1),
-    height: game.camera.height * 0.1,
-    // Position 10px above the action button
-    posX: 10,
-    posY: game.camera.height - (game.camera.height * 0.1 + 10) - (game.camera.height * 0.1 + 10),
-}
-
-game.pauseBtnIcon = {
-    // icon dimensions
-    width: game.CENTER_CIRCLE_RADIUS * 0.5,
-    height: game.CENTER_CIRCLE_RADIUS,
-    // icon position
-    posX: game.pauseBtnSize.posX + 10,
-    posY: game.pauseBtnSize.posY + 10,
-}
 
 function drawPauseIcon() {
     drawRectangle(game.pauseBtnIcon);
     drawRectangle(game.pauseBtnIcon, { x: game.CENTER_CIRCLE_RADIUS * 0.76, y: 0 });
 }
 
-game.cargoBtnSize = {
-    width: ((game.camera.width < 800) ? game.camera.width * 0.2 : game.camera.width * 0.1),
-    height: game.camera.height * 0.1,
-    posX: 10,
-    posY: game.camera.height - (game.camera.height * 0.1 + 10) * 3,
-};
 
 function drawCargoButton() {
     const hasTowed = game.ship && game.ship.towedContainer !== null;
@@ -1640,22 +1702,6 @@ function drawCargoButton() {
     );
 }
 
-game.resetBtnSize = {
-    // button dimensions
-    width: game.camera.width * (isMobile() ? 0.55 : 0.25), // rectWidth * 0.5 (half of camera.width * 0.5)
-    height: game.camera.height * 0.09, // rectHeight * 0.3 (30% of camera.height * 0.3)
-    // Position to match the dialogue's drawing position
-    posX: game.camera.width / 2 - (game.camera.width * (isMobile() ? 0.55 : 0.25)) / 2, // Center horizontally
-    posY: game.camera.height / 2 + game.camera.height * 0.07 - game.camera.height * 0.045, // Center vertically with text offset
-};
-
-game._menuBtnW = Math.min(308, game.camera.width * 0.66);
-game._menuBtnH = Math.max(50, game.camera.height * 0.09);
-game._menuBtnX = game.camera.width / 2 - game._menuBtnW / 2;
-
-game.menuStartBtnSize = { width: game._menuBtnW, height: game._menuBtnH, posX: game._menuBtnX, posY: game.camera.height * 0.48 };
-game.menuControlsBtnSize = { width: game._menuBtnW, height: game._menuBtnH, posX: game._menuBtnX, posY: game.camera.height * 0.60 };
-game.menuBackBtnSize = { width: game._menuBtnW * 0.6, height: game._menuBtnH, posX: game.camera.width / 2 - game._menuBtnW * 0.3, posY: game.camera.height * 0.82 };
 
 function drawMenuBackground() {
     const bg = game.ctx.createLinearGradient(0, 0, 0, game.camera.height);
@@ -1788,8 +1834,6 @@ Game.prototype.menuLoop = function () {
 };
 
 Game.prototype.loop = function (timestamp) {
-    window.__lastFrameTime = performance.now();
-    window.__frameCount = (window.__frameCount || 0) + 1;
     const deltaTime = timestamp - game.lastTime;
     game.lastTime = timestamp;
 
@@ -1991,48 +2035,6 @@ Game.prototype.loop = function (timestamp) {
     }
 };
 
-// Mouse contrail tracking
-game.mouseContrail = {
-    points: [],
-    lastUpdateTime: 0,
-    updateInterval: 30, // 50ms between updates
-    pointLifespan: 100, // 100ms lifespan for each point
-
-    addPoint(x, y) {
-        const currentTime = performance.now();
-        if (currentTime - this.lastUpdateTime >= this.updateInterval) {
-            this.points.push({ x, y, timestamp: currentTime });
-            this.lastUpdateTime = currentTime;
-        }
-    },
-
-    update() {
-        const currentTime = performance.now();
-        // Filter out points that exceed lifespan
-        this.points = this.points.filter(point => currentTime - point.timestamp <= this.pointLifespan);
-    },
-
-    draw() {
-        if (this.points.length < 2) return;
-
-        game.ctx.beginPath();
-        game.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        game.ctx.lineWidth = 2;
-
-        // Start from the oldest point
-        game.ctx.moveTo(this.points[0].x, this.points[0].y);
-
-        // Draw lines to each subsequent point
-        for (let i = 1; i < this.points.length; i++) {
-            game.ctx.lineTo(this.points[i].x, this.points[i].y);
-            // Gradually increase opacity for newer points
-            game.ctx.strokeStyle = `rgba(255, 255, 255, ${i / this.points.length * 0.5})`;
-            game.ctx.stroke();
-            game.ctx.beginPath();
-            game.ctx.moveTo(this.points[i].x, this.points[i].y);
-        }
-    }
-};
 
 function handlePointerDown(event) {
     // type of click: mouseDown
@@ -2363,6 +2365,7 @@ function initDebugArea() {
 }
 
 function debug(text) {
+    if (!game || !game.debugEl) return;
     const codeElement = document.createElement('code');
     codeElement.textContent = text;
     game.debugEl.appendChild(codeElement);
