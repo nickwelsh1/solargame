@@ -11,6 +11,7 @@ import { Scrap } from './entities/Scrap.js';
 import { Planet } from './entities/Planet.js';
 import { Particle } from './entities/Particle.js';
 import { Beam } from './entities/Beam.js';
+import { Projectile, Laser } from './entities/Projectile.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -566,14 +567,14 @@ class Ship {
         let projectile;
         switch (game.player.currentWeapon) {
             case 'laser':
-                projectile = [new Laser(this.x, this.y, this.angle)];
+                projectile = [new Laser(game, this.x, this.y, this.angle)];
                 break;
             case 'machineGun':
-                let bullet = new Bullet(this.x, this.y, this.angle);
+                let bullet = new Bullet(game, this.x, this.y, this.angle);
                 projectile = spawnOffsetGroup(bullet, 2, 10); // dual
                 break;
             case 'missile':
-                projectile = [new Missile(this.x, this.y, this.angle)];
+                projectile = [new Missile(game, this.x, this.y, this.angle)];
                 break;
         }
         game.projectiles.push(...projectile);
@@ -684,72 +685,17 @@ class Asteroid {
 }
 
 
-class Projectile {
-    constructor(x, y, angle, speed = 1000, radius, lifespan = 6000) {
-        this.name = 'projectile';
-        this.x = x;
-        this.y = y;
-        this.angle = angle;
-        this.speed = speed;
-        this.radius = radius;
-        this.lifespan = lifespan;
-        this.mass = Math.PI * this.radius * this.radius;
-    }
-
-    update(deltaTime) {
-        this.x += Math.cos(this.angle) * this.speed * deltaTime / 1000;
-        this.y += Math.sin(this.angle) * this.speed * deltaTime / 1000;
-        this.lifespan -= deltaTime;
-    }
-
-    draw() {
-        game.ctx.beginPath();
-        // ctx.arc(this.x - cameraOffset.x, this.y - cameraOffset.y, this.radius, 0, Math.PI * 2);
-        game.ctx.moveTo(this.x - game.cameraOffset.x, this.y - game.cameraOffset.y);
-        game.ctx.lineTo(
-            this.x - game.cameraOffset.x + Math.cos(this.angle) * 10,
-            this.y - game.cameraOffset.y + Math.sin(this.angle) * 10
-        );
-        game.ctx.strokeStyle = 'white';
-        game.ctx.lineWidth = 3;
-        game.ctx.stroke();
-        // ctx.fillStyle = 'white';
-        // ctx.fill();
-    }
-}
-
-
-class Laser extends Projectile {
-    constructor(x, y, angle) {
-        super(x, y, angle, 6000, 10, 100);
-        this.name = 'laser';
-    }
-
-    draw() {
-        game.ctx.beginPath();
-        game.ctx.moveTo(this.x - game.cameraOffset.x, this.y - game.cameraOffset.y);
-        game.ctx.lineTo(
-            this.x - game.cameraOffset.x + Math.cos(this.angle) * this.speed * this.lifespan / 1000,
-            this.y - game.cameraOffset.y + Math.sin(this.angle) * this.speed * this.lifespan / 1000
-        );
-        game.ctx.strokeStyle = 'red';
-        game.ctx.lineWidth = 3;
-        game.ctx.stroke();
-    }
-}
-
-
 class Bullet extends Projectile {
-    constructor(x, y, angle) {
-        super(x, y, angle, 1000, 3, 3000);
+    constructor(game, x, y, angle) {
+        super(game, x, y, angle, 1000, 3, 3000);
         this.name = 'bullet';
     }
 }
 
 
 class Missile extends Projectile {
-    constructor(x, y, angle) {
-        super(x, y, angle, 10, 5, 6000); // Start with initial speed of 10
+    constructor(game, x, y, angle) {
+        super(game, x, y, angle, 10, 5, 6000); // Start with initial speed of 10
         this.name = 'missile';
         this.initialSpeed = 100;
         this.maxSpeed = 1000;
@@ -770,38 +716,21 @@ class Missile extends Projectile {
     }
 
     draw() {
-        game.ctx.save();
-        game.ctx.translate(this.x - game.cameraOffset.x, this.y - game.cameraOffset.y);
-        game.ctx.rotate(this.angle);
-        game.ctx.beginPath();
-        game.ctx.moveTo(this.radius * 2, 0);
-        game.ctx.lineTo(-this.radius * 2, -this.radius);
-        game.ctx.lineTo(-this.radius * 2, this.radius);
-        game.ctx.closePath();
-        game.ctx.fillStyle = 'yellow';
-        game.ctx.fill();
-        game.ctx.restore();
-    }
-}
-
-
-class Contrail extends Projectile {
-    constructor(x, y, angle) {
-        this.name = 'contrail';
-        super(x, y, angle, 0, 2, 6000);
-        this.count = 1;
-    }
-
-    draw() {
-        game.ctx.beginPath();
-        game.ctx.moveTo(this.x - game.cameraOffset.x, this.y - game.cameraOffset.y);
-        game.ctx.lineTo(
-            this.x - game.cameraOffset.x + Math.cos(this.angle) * this.speed * this.lifespan / 1000,
-            this.y - game.cameraOffset.y + Math.sin(this.angle) * this.speed * this.lifespan / 1000
+        const ctx = this.game.ctx;
+        ctx.save();
+        ctx.translate(
+            this.x - this.game.cameraOffset.x,
+            this.y - this.game.cameraOffset.y,
         );
-        game.ctx.strokeStyle = 'red';
-        game.ctx.lineWidth = 2;
-        game.ctx.stroke();
+        ctx.rotate(this.angle);
+        ctx.beginPath();
+        ctx.moveTo(this.radius * 2, 0);
+        ctx.lineTo(-this.radius * 2, -this.radius);
+        ctx.lineTo(-this.radius * 2, this.radius);
+        ctx.closePath();
+        ctx.fillStyle = 'yellow';
+        ctx.fill();
+        ctx.restore();
     }
 }
 
@@ -1873,6 +1802,7 @@ function spawnOffsetGroup(primaryObj, count = 2, spacing = 10, spreadAngle = 0, 
 
         // Create a new projectile for each item in the group
         const newProjectile = new ProjectileClass(
+            primaryObj.game,
             primaryObj.x + offsetX,
             primaryObj.y + offsetY,
             angle,
