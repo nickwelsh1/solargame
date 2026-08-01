@@ -7,6 +7,7 @@ import { Input } from './input.js';
 import { Player } from './player.js';
 import { UI } from './ui.js';
 import { CargoContainer } from './entities/CargoContainer.js';
+import { Scrap } from './entities/Scrap.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -1023,40 +1024,6 @@ class Dialogue {
             // ctx.fillRect(this.rectX, this.rectY, this.rectWidth, this.rectHeight);
             this.btnDelay = 0; // Reset the delay
         }
-    }
-}
-
-
-class Scrap {
-    constructor(x, y, contents) {
-        this.name = 'scrap';
-        this.x = x;
-        this.y = y;
-        this.contents = contents;
-        this.width = contents ? 10 : 5;
-        this.height = contents ? 7 : 4;
-        this.velocityX = randomMinMax(-40, 40);
-        this.velocityY = randomMinMax(-40, 40);
-        this.lifespan = contents ? 30000 : 5000;
-    }
-
-    update(deltaTime) {
-        this.x += this.velocityX * deltaTime / 1000;
-        this.y += this.velocityY * deltaTime / 1000;
-        this.velocityX *= 0.995;
-        this.velocityY *= 0.995;
-        this.lifespan -= deltaTime;
-    }
-
-    draw() {
-        const alpha = this.contents ? 1 : Math.min(1, this.lifespan / 1000);
-        const sx = this.x - game.cameraOffset.x;
-        const sy = this.y - game.cameraOffset.y;
-        game.ctx.save();
-        game.ctx.globalAlpha = Math.max(0, alpha);
-        game.ctx.fillStyle = this.contents ? '#FFD700' : '#888';
-        game.ctx.fillRect(sx - this.width / 2, sy - this.height / 2, this.width, this.height);
-        game.ctx.restore();
     }
 }
 

@@ -100,12 +100,12 @@ export class CargoContainer {
         }
         // 50% chance to drop contents as collectable scrap
         if (this.contents && Math.random() < 0.5) {
-            const drop = new Scrap(this.x, this.y, this.contents);
+            const drop = new Scrap(this.game, this.x, this.y, this.contents);
             this.game.scrap.push(drop);
         }
         // Debris fragments
         for (let i = 0; i < 4; i++) {
-            this.game.scrap.push(new Scrap(this.x, this.y, null));
+            this.game.scrap.push(new Scrap(this.game, this.x, this.y, null));
         }
         const idx = this.game.containers.indexOf(this);
         if (idx !== -1) this.game.containers.splice(idx, 1);
