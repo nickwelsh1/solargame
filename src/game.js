@@ -9,6 +9,32 @@ import {
 
 let game;
 
+class World {
+    constructor() {
+        this.top = 0;
+        this.right = 0;
+        this.bottom = 0;
+        this.left = 0;
+        this.center = 0;
+        this.width = 0;
+        this.height = 0;
+    }
+}
+
+class Camera {
+    constructor() {
+        this.top = 0;
+        this.right = 0;
+        this.bottom = 0;
+        this.left = 0;
+        this.center = 0;
+        this.width = 0;
+        this.height = 0;
+        this.centerX = 0;
+        this.centerY = 0;
+    }
+}
+
 class Game {
     constructor() {
         this.lastTime = 0;
@@ -28,8 +54,8 @@ class Game {
         this.beams = []; // Array to track active beams
         this.containers = [];
         this.scrap = [];
-        this.world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
-        this.camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
+        this.world = new World();
+        this.camera = new Camera();
 
         this.MINIMAP_SCALE = 0;
         this.MINIMAP_MARGIN = 0;
