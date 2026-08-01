@@ -8,6 +8,7 @@ import { Player } from './player.js';
 import { UI } from './ui.js';
 import { CargoContainer } from './entities/CargoContainer.js';
 import { Scrap } from './entities/Scrap.js';
+import { Planet } from './entities/Planet.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -681,28 +682,6 @@ class Asteroid {
 }
 
 
-class Planet {
-    constructor(x, y) {
-        this.name = 'planet';
-        this.radius = 100;
-        // If x,y not provided, generate random position within world bounds
-        this.x = x !== undefined ? x : this.radius + Math.random() * (game.world.width - this.radius * 2);
-        this.y = y !== undefined ? y : this.radius + Math.random() * (game.world.height - this.radius * 2);
-    }
-
-    update() {
-        // Planets don't move, but we need this method for the game loop
-    }
-
-    draw() {
-        game.ctx.fillStyle = 'hsl(200, 50%, 50%)';
-        game.ctx.beginPath();
-        game.ctx.arc(this.x - game.cameraOffset.x, this.y - game.cameraOffset.y, this.radius, 0, Math.PI * 2);
-        game.ctx.fill();
-    }
-}
-
-
 class Projectile {
     constructor(x, y, angle, speed = 1000, radius, lifespan = 6000) {
         this.name = 'projectile';
@@ -1049,7 +1028,7 @@ function spanInitialPlanets() {
 
     for (let i = 0; i < planetCount; i++) {
         if (game.entities.length < CONFIG.MAX_ENTITIES) {
-            const planet = new Planet();
+            const planet = new Planet(game);
             game.planets.push(planet);
             game.entities.push(planet);
         }
