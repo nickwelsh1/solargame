@@ -6,17 +6,11 @@ import { State } from './state.js';
 import { Input } from './input.js';
 import { Player } from './player.js';
 import { UI } from './ui.js';
-import { CargoContainer } from './entities/CargoContainer.js';
 import { Scrap } from './entities/Scrap.js';
-import { Planet } from './entities/Planet.js';
-import { Particle } from './entities/Particle.js';
-import { Beam } from './entities/Beam.js';
-import { Projectile, Laser, Bullet, Missile } from './entities/Projectile.js';
-import { Asteroid } from './entities/Asteroid.js';
 import { Ship } from './entities/Ship.js';
 import { Dialogue } from './entities/Dialogue.js';
+import { Spawner } from './systems/Spawner.js';
 import {
-    randomMinMax,
     calculateNewPosition,
     logarithmicIncrease,
     countObjectProperties,
@@ -185,6 +179,8 @@ class Game {
             posX: this.camera.width / 2 - (this.camera.width * (isMobile() ? 0.55 : 0.25)) / 2,
             posY: this.camera.height / 2 + this.camera.height * 0.07 - this.camera.height * 0.045,
         };
+
+        this.spawner = new Spawner(game);
     }
 }
 
@@ -219,41 +215,6 @@ game.init();
 
 
 
-
-function spawnInitialAsteroids() {
-    console.log('spawnInitialAsteroids');
-    for (let i = 0; i < CONFIG.INITIAL_ASTEROID_COUNT; i++) {
-        if (game.entities.length < CONFIG.MAX_ENTITIES) {
-            const asteroid = new Asteroid(game);
-            game.asteroids.push(asteroid);
-            game.entities.push(asteroid);
-        }
-    }
-    console.log('asteroids spawned:', game.asteroids.length);
-}
-
-function spanInitialPlanets() {
-    // Clear existing planets
-    // planets = [];
-
-    // Spawn 1-3 planets
-    const planetCount = randomMinMax(1, 3);
-
-    for (let i = 0; i < planetCount; i++) {
-        if (game.entities.length < CONFIG.MAX_ENTITIES) {
-            const planet = new Planet(game);
-            game.planets.push(planet);
-            game.entities.push(planet);
-        }
-    }
-    console.log('planets spawned:', game.planets.length);
-}
-
-function createParticles() {
-    for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
-        game.particles.push(new Particle(game));
-    }
-}
 
 // Collision Detection Helper Functions
 
@@ -810,7 +771,7 @@ function handlePointerDown(event) {
         game.containers = [];
         game.scrap = [];
         game.entities = [];
-        spawnInitialAsteroids();
+        game.spawner.spawnInitialAsteroids();
     }
 
     if (!game.state.game_over && isUIButtonClicked(game.actionBtnSize)) {
@@ -974,15 +935,6 @@ function clearEntities() {
     console.log('clearEntities names:', names);
 }
 
-function spawnInitialContainers() {
-    for (let i = 0; i < 5; i++) {
-        const container = new CargoContainer(game);
-        game.containers.push(container);
-        game.entities.push(container);
-    }
-    game.state.initialContainerCount = game.containers.length;
-    console.log('containers spawned:', game.containers.length);
-}
 
 function initGame() {
     game.state.screen = 'game';
@@ -994,10 +946,10 @@ function initGame() {
     game.entities.push(game.dialogue);
     game.ship = new Ship(game);
     game.entities.push(game.ship);
-    spanInitialPlanets();
-    createParticles();
-    spawnInitialAsteroids();
-    spawnInitialContainers();
+    game.spawner.spanInitialPlanets();
+    game.spawner.createParticles();
+    game.spawner.spawnInitialAsteroids();
+    game.spawner.spawnInitialContainers();
     requestAnimationFrame((timestamp) => game.loop(timestamp));
 }
 
@@ -1138,57 +1090,11 @@ function isTimerExpired() {
     return false;
 }
 
-/**
- * Spawns a group of projectiles in a line or fan shape.
- *
- * @param {Projectile} primaryObj - The projectile to use as a template.
- * @param {number} count - total number of projectiles to include.
- * @param {number} spacing - pixel distance between adjacent projectiles.
- * @param {number} spreadAngle - total angular spread in degrees (0 = parallel).
- * @param {...any} args - extra constructor args for projectile subclasses.
- * @returns {Projectile[]} all projectiles.
- */
-function spawnOffsetGroup(primaryObj, count = 2, spacing = 10, spreadAngle = 0, ...args) {
-    if (count < 1) return [];
 
-    const baseAngle = primaryObj.angle;
-    // This was converting degrees to radians, but angle is already in radians.
-    // const radians = baseAngle * (Math.PI / 180); 
-    const dx = Math.cos(baseAngle + Math.PI / 2);
-    const dy = Math.sin(baseAngle + Math.PI / 2);
-    const ProjectileClass = primaryObj.constructor;
-
-    const mid = (count - 1) / 2;
-    const angleStep = count > 1 ? (spreadAngle * Math.PI / 180) / (count - 1) : 0; // Convert spreadAngle to radians
-    const _projectiles = [];
-
-    for (let i = 0; i < count; i++) {
-        const offsetIndex = i - mid;
-        const offsetX = dx * offsetIndex * spacing;
-        const offsetY = dy * offsetIndex * spacing;
-        const angleOffset = (offsetIndex * angleStep) / 2; // symmetric spread
-
-        const angle = baseAngle + angleOffset;
-
-        // Create a new projectile for each item in the group
-        const newProjectile = new ProjectileClass(
-            primaryObj.game,
-            primaryObj.x + offsetX,
-            primaryObj.y + offsetY,
-            angle,
-            ...args
-        );
-
-        _projectiles.push(newProjectile);
-    }
-
-    return _projectiles;
-}
 
 
 
 const shipSVG = `
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1110" height="1110" viewBox="817.5,362.5,110,110"><g id="document" fill="#ffffff" fill-rule="nonzero" stroke="#000000" stroke-width="0" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" ><rect x="5202.27273" y="1647.72727" transform="scale(0.15714,0.22)" width="700" height="500" id="Shape 1 1" vector-effect="non-scaling-stroke"/></g><g fill="white" fill-rule="nonzero" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"><g id="stage"><g id="layer1 1"><path d="M821.60345,466.98276l41.81819,-87.88263l7.42319,-15.60013l52.65517,102.79311l-51.44828,-27.18965z" id="Path 3"/><path d="M868.01726,412.38048l6.75056,-0.02159l5.04149,20.55973l-16.36421,0.3818z" id="Path 3"/><path d="M870.87479,369.24255l0.64607,43.36469" id="Path 3"/><path d="M871.85375,460.37879l5.79776,-5.75343l-12.15152,-0.03429z" id="Path 3"/><path d="M874.15248,426.12645" id="Path 3"/><path d="M849.41412,447.8546l21.46448,-78.27112l24.75585,78.18049" id="Path 3"/><path d="M822.40716,465.29373l49.43258,-31.91997l51.00257,31.63544" id="Path 1 1"/><path d="M863.26579,444.29662l2.23421,7.02571h12l2.14622,-8.20529" id="Path 3"/><path d="M864.93246,450.72458l-5.90909,3.33333l-2.87879,-2.12121l1.61797,-4.9366" id="Path 3"/><path d="M878.65151,450.52932l5.90909,3.33333l2.87879,-2.12121l-1.61797,-4.9366" id="Path 2 1"/><path d="M871.75064,438.9064l-0.30303,12.41593" id="Path 3"/><path d="M872.81125,411.78519" id="Path 3"/></g></g></g></svg>
 `;
-game.spawnOffsetGroup = spawnOffsetGroup;
 export { Scrap };

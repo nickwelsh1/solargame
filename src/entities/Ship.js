@@ -438,7 +438,7 @@ export class Ship {
                     this.y,
                     this.angle,
                 );
-                projectile = this.game.spawnOffsetGroup(bullet, 2, 10); // dual
+                projectile = this.game.spawner.spawnOffsetGroup(bullet, 2, 10); // dual
                 break;
             }
             case 'missile':
