@@ -10,6 +10,7 @@ import { CargoContainer } from './entities/CargoContainer.js';
 import { Scrap } from './entities/Scrap.js';
 import { Planet } from './entities/Planet.js';
 import { Particle } from './entities/Particle.js';
+import { Beam } from './entities/Beam.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -556,7 +557,7 @@ class Ship {
 
         // Handle beam weapon separately since it doesn't go into projectiles array
         if (game.player.currentWeapon === 'beam') {
-            const beam = new Beam(this.x, this.y, this.angle);
+            const beam = new Beam(game, this.x, this.y, this.angle);
             game.beams.push(beam);
             game.entities.push(beam);
             return;
@@ -801,91 +802,6 @@ class Contrail extends Projectile {
         game.ctx.strokeStyle = 'red';
         game.ctx.lineWidth = 2;
         game.ctx.stroke();
-    }
-}
-
-
-class Beam {
-    constructor(x, y, angle) {
-        this.name = 'beam';
-        this.x = x;
-        this.y = y;
-        this.angle = angle;
-        this.length = 400;      // Length of the beam
-        this.radius = 8;         // Width/radius of the beam
-        this.lifespan = 200;     // How long the beam stays active (ms)
-        this.createdAt = performance.now();
-
-        // Calculate end point of the beam
-        this.endX = this.x + Math.cos(this.angle) * this.length;
-        this.endY = this.y + Math.sin(this.angle) * this.length;
-    }
-
-    update(deltaTime) {
-        this.lifespan -= deltaTime;
-    }
-
-    draw() {
-        // Draw the beam as a thick line
-        game.ctx.save();
-
-        // Create gradient for visual effect
-        const gradient = game.ctx.createLinearGradient(
-            this.x - game.cameraOffset.x,
-            this.y - game.cameraOffset.y,
-            this.endX - game.cameraOffset.x,
-            this.endY - game.cameraOffset.y
-        );
-        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
-        gradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.6)');
-        gradient.addColorStop(1, 'rgba(0, 150, 255, 0.2)');
-
-        game.ctx.beginPath();
-        game.ctx.moveTo(this.x - game.cameraOffset.x, this.y - game.cameraOffset.y);
-        game.ctx.lineTo(this.endX - game.cameraOffset.x, this.endY - game.cameraOffset.y);
-        game.ctx.strokeStyle = gradient;
-        game.ctx.lineWidth = this.radius * 2;
-        game.ctx.lineCap = 'round';
-        game.ctx.stroke();
-
-        // Add outer glow
-        game.ctx.beginPath();
-        game.ctx.moveTo(this.x - game.cameraOffset.x, this.y - game.cameraOffset.y);
-        game.ctx.lineTo(this.endX - game.cameraOffset.x, this.endY - game.cameraOffset.y);
-        game.ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
-        game.ctx.lineWidth = this.radius * 3;
-        game.ctx.lineCap = 'round';
-        game.ctx.stroke();
-
-        game.ctx.restore();
-    }
-
-    // Check if a point is within the beam's area
-    isPointInBeam(px, py) {
-        // Vector from beam start to point
-        const dx = px - this.x;
-        const dy = py - this.y;
-
-        // Beam direction vector
-        const beamDx = Math.cos(this.angle);
-        const beamDy = Math.sin(this.angle);
-
-        // Project point onto beam line
-        const projection = dx * beamDx + dy * beamDy;
-
-        // Check if projection is within beam length
-        if (projection < 0 || projection > this.length) {
-            return false;
-        }
-
-        // Find closest point on beam line
-        const closestX = this.x + beamDx * projection;
-        const closestY = this.y + beamDy * projection;
-
-        // Check distance from point to closest point on line
-        const distance = Math.hypot(px - closestX, py - closestY);
-
-        return distance <= this.radius;
     }
 }
 
