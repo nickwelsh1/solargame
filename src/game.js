@@ -9,6 +9,7 @@ import { UI } from './ui.js';
 import { CargoContainer } from './entities/CargoContainer.js';
 import { Scrap } from './entities/Scrap.js';
 import { Planet } from './entities/Planet.js';
+import { Particle } from './entities/Particle.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -889,36 +890,6 @@ class Beam {
 }
 
 
-class Particle {
-    constructor() {
-        this.name = 'particle';
-        this.x = Math.random() * game.world.width;
-        this.y = Math.random() * game.world.height;
-        this.size = Math.random() * 1.5 + 0.5;
-        this.speedX = Math.random() * 1 - 0.5;
-        this.speedY = Math.random() * 1 - 0.5;
-    }
-
-    update(deltaTime) {
-        // update particle position relative to world
-        this.x -= (this.speedX * deltaTime / 1000);
-        this.y -= (this.speedY * deltaTime / 1000);
-
-        if (this.x < 0) this.x = game.world.width;
-        if (this.x > game.world.width) this.x = 0;
-        if (this.y < 0) this.y = game.world.height;
-        if (this.y > game.world.height) this.y = 0;
-    }
-
-    draw() {
-        game.ctx.fillStyle = 'hsla(0, 0.00%, 78.40%, 0.50)';
-        game.ctx.beginPath();
-        game.ctx.arc(this.x - game.cameraOffset.x, this.y - game.cameraOffset.y, this.size, 0, Math.PI * 2);
-        game.ctx.fill();
-    }
-}
-
-
 class Dialogue {
 
     constructor() {
@@ -1038,7 +1009,7 @@ function spanInitialPlanets() {
 
 function createParticles() {
     for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
-        game.particles.push(new Particle());
+        game.particles.push(new Particle(game));
     }
 }
 
