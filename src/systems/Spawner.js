@@ -1,9 +1,9 @@
-import { Asteroid } from '../entities/Asteroid.js';
-import { CargoContainer } from '../entities/CargoContainer.js';
-import { Dialogue } from '../entities/Dialogue.js';
+import { createAsteroid } from '../entities/Asteroid.js';
+import { createCargoContainer } from '../entities/CargoContainer.js';
+import { createDialogue } from '../entities/Dialogue.js';
 import { Particle } from '../entities/Particle.js';
 import { Planet } from '../entities/Planet.js';
-import { Ship } from '../entities/Ship.js';
+import { createShip } from '../entities/Ship.js';
 import { randomMinMax } from '../utils/helpers.js';
 import { startTimer } from './timer.js';
 
@@ -13,7 +13,7 @@ export function createSpawner(game) {
             console.log('spawnInitialAsteroids');
             for (let i = 0; i < game.CONFIG.INITIAL_ASTEROID_COUNT; i++) {
                 if (game.entities.length < game.CONFIG.MAX_ENTITIES) {
-                    const asteroid = new Asteroid(game);
+                    const asteroid = createAsteroid(game);
                     game.asteroids.push(asteroid);
                     game.entities.push(asteroid);
                 }
@@ -46,7 +46,7 @@ export function createSpawner(game) {
 
         spawnInitialContainers() {
             for (let i = 0; i < 5; i++) {
-                const container = new CargoContainer(game);
+                const container = createCargoContainer(game);
                 game.containers.push(container);
                 game.entities.push(container);
             }
@@ -114,9 +114,9 @@ export function initGame(game) {
     game.containers = [];
     game.scrap = [];
     startTimer(game, 5);
-    game.dialogue = new Dialogue(game);
+    game.dialogue = createDialogue(game);
     game.entities.push(game.dialogue);
-    game.ship = new Ship(game);
+    game.ship = createShip(game);
     game.entities.push(game.ship);
     game.spawner.spanInitialPlanets();
     game.spawner.createParticles();
