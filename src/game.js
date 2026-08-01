@@ -11,7 +11,7 @@ import { Scrap } from './entities/Scrap.js';
 import { Planet } from './entities/Planet.js';
 import { Particle } from './entities/Particle.js';
 import { Beam } from './entities/Beam.js';
-import { Projectile, Laser } from './entities/Projectile.js';
+import { Projectile, Laser, Bullet, Missile } from './entities/Projectile.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -681,56 +681,6 @@ class Asteroid {
         game.entities.push(newAsteroid1, newAsteroid2);
 
         return [newAsteroid1, newAsteroid2];
-    }
-}
-
-
-class Bullet extends Projectile {
-    constructor(game, x, y, angle) {
-        super(game, x, y, angle, 1000, 3, 3000);
-        this.name = 'bullet';
-    }
-}
-
-
-class Missile extends Projectile {
-    constructor(game, x, y, angle) {
-        super(game, x, y, angle, 10, 5, 6000); // Start with initial speed of 10
-        this.name = 'missile';
-        this.initialSpeed = 100;
-        this.maxSpeed = 1000;
-        this.timeSinceLaunch = 0;
-    }
-
-    update(deltaTime) {
-        this.timeSinceLaunch += deltaTime;
-        // Calculate how many 50ms intervals have passed
-        const intervals = Math.floor(this.timeSinceLaunch / 50);
-        // Speed doubles every interval, but is capped at maxSpeed
-        this.speed = Math.min(this.initialSpeed * Math.pow(1.1, intervals), this.maxSpeed);
-
-        // Use the parent class's movement logic with our updated speed
-        this.x += Math.cos(this.angle) * this.speed * deltaTime / 1000;
-        this.y += Math.sin(this.angle) * this.speed * deltaTime / 1000;
-        this.lifespan -= deltaTime;
-    }
-
-    draw() {
-        const ctx = this.game.ctx;
-        ctx.save();
-        ctx.translate(
-            this.x - this.game.cameraOffset.x,
-            this.y - this.game.cameraOffset.y,
-        );
-        ctx.rotate(this.angle);
-        ctx.beginPath();
-        ctx.moveTo(this.radius * 2, 0);
-        ctx.lineTo(-this.radius * 2, -this.radius);
-        ctx.lineTo(-this.radius * 2, this.radius);
-        ctx.closePath();
-        ctx.fillStyle = 'yellow';
-        ctx.fill();
-        ctx.restore();
     }
 }
 
