@@ -1,5 +1,6 @@
 import * as assets from './assets.js';
 import { isUIButtonClicked } from './input.js';
+import { checkTimer } from './systems/timer.js';
 
 export class Renderer {
     constructor() {
@@ -327,7 +328,7 @@ export class Renderer {
             this.game.state.timer.timerExpired ||
             !this.game.state.timer.startTime
                 ? '00:00'
-                : this.game.checkTimer();
+                : checkTimer(this.game);
         const fontSize = Math.min(
             Math.round(
                 Math.min(

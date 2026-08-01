@@ -1,10 +1,10 @@
-export class State {
-    constructor() {
-        this.screen = 'menu';
-        this.game_over = false;
-        this.game_paused = false;
-        this.score = 0;
-        this.timer = {};
-        this.initialContainerCount = 0;
-    }
+export function createState() {
+    return {
+        screen: 'menu',
+        game_over: false,
+        game_paused: false,
+        score: 0,
+        timer: {},
+        initialContainerCount: 0,
+    };
 }

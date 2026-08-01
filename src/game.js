@@ -4,8 +4,9 @@ import { CONFIG } from './config.js';
 import { shipSVG3, loadSVGString } from './assets.js';
 import { World } from './world.js';
 import { Camera } from './camera.js';
-import { State } from './state.js';
+import { createState } from './state.js';
 import { createInput, setupInputListeners } from './input.js';
+import { startTimer, triggerGameOver } from './systems/timer.js';
 import { Player } from './player.js';
 import { createUI } from './ui.js';
 import { Ship } from './entities/Ship.js';
@@ -52,7 +53,7 @@ class Game {
         this.entities = [];
 
         // Game State
-        this.state = new State();
+        this.state = createState();
 
         this.CENTER_CIRCLE_RADIUS = 50 * CONFIG.MOBILE_SCALE;  // Radius of the central UI circle for interaction
         // debug(`cw, ch: ${camera.width}, ${camera.height}`);
@@ -309,22 +310,6 @@ function removeProjectile(projectile) {
 }
 
 /**
- * Handle game over state
- */
-function triggerGameOver() {
-    game.state.game_over = true;
-
-    // Stop the timer when game over
-    if (game.state.timer.interval) {
-        clearInterval(game.state.timer.interval);
-    }
-
-    clearEntities();
-    console.log("Game over!");
-    game.ui.dialogueText = "Game Over!";
-}
-
-/**
  * Check collisions between projectiles and asteroids
  */
 function checkProjectileAsteroidCollisions() {
@@ -389,7 +374,7 @@ function checkShipAsteroidCollisions() {
             game.ship.x, game.ship.y, game.ship.radius,
             asteroid.x, asteroid.y, asteroid.radius
         )) {
-            triggerGameOver();
+            triggerGameOver(game);
             return; // Exit immediately on game over
         }
     }
@@ -695,17 +680,6 @@ Game.prototype.loop = function (timestamp) {
 };
 
 
-function clearEntities() {
-    // console.log('the entities', entities);
-    // TODO: this won't clear the entities yet
-    let names = [];
-    for (let i = 0; i < game.entities.length; i++) {
-        names.push(game.entities[i].name);
-    }
-    console.log('clearEntities names:', names);
-}
-
-
 function resetGame(game) {
     game.state.game_over = false;
     game.ui.dialogueText = '';
@@ -724,7 +698,7 @@ function initGame(game) {
     game.state.score = 0;
     game.containers = [];
     game.scrap = [];
-    startTimer(5);
+    startTimer(game, 5);
     game.dialogue = new Dialogue(game);
     game.entities.push(game.dialogue);
     game.ship = new Ship(game);
@@ -774,7 +748,6 @@ function initDebugArea() {
 
 
 
-Game.prototype.checkTimer = checkTimer;
 Game.prototype.isPointOverAsteroid = isPointOverAsteroid;
 
 export { Game, game };
@@ -785,64 +758,6 @@ if (isMobile()) {
 
 
 
-// Function to draw a white circle at the center of the camera
-
-function startTimer(durationMins) {
-    game.state.timer.startTime = Date.now(); // in milliseconds
-    game.state.timer.duration = durationMins * 60 * 1000; // x minutes in ms
-    game.state.timer.timerExpired = false;
-    game.state.timer.totalPausedMs = 0;
-    game.state.timer.pausedAt = null;
-
-    // Start a timer that updates every second to show score and remaining time
-    if (game.state.timer.interval) {
-        clearInterval(game.state.timer.interval);
-    }
-
-    game.state.timer.interval = setInterval(() => {
-        isTimerExpired();
-    }, 1000); // Check expiry every second
-}
-
-function checkTimer() {
-    const pausedMs = (game.state.timer.totalPausedMs || 0) +
-        (game.state.timer.pausedAt ? Date.now() - game.state.timer.pausedAt : 0);
-    const elapsed = Date.now() - game.state.timer.startTime - pausedMs;
-    const remaining = Math.max(0, game.state.timer.duration - elapsed);
-
-    // Format remaining time
-    const mins = Math.floor(remaining / 60000);
-    const secs = Math.floor((remaining % 60000) / 1000);
-    const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    //   console.log(`Remaining: ${formatted}`);
-
-    return formatted;
-}
-
-function isTimerExpired() {
-    // Always consider timer expired if game is over
-    if (game.state.game_over) {
-        return true;
-    }
-
-    // Calculate effective elapsed time (excluding paused duration)
-    const pausedMs = (game.state.timer.totalPausedMs || 0) +
-        (game.state.timer.pausedAt ? Date.now() - game.state.timer.pausedAt : 0);
-    const elapsed = Date.now() - game.state.timer.startTime - pausedMs;
-
-    // Check if timer has expired
-    if (!game.state.timer.timerExpired && elapsed >= game.state.timer.duration) {
-        game.state.timer.timerExpired = true;
-        // Clear our interval when the timer expires
-        if (game.state.timer.interval) {
-            clearInterval(game.state.timer.interval);
-        }
-        console.log("Timer expired! Perform your action here.");
-        return true;
-    }
-
-    return false;
-}
 
 
 
