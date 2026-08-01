@@ -6,6 +6,7 @@ import { State } from './state.js';
 import { Input } from './input.js';
 import { Player } from './player.js';
 import { UI } from './ui.js';
+import { CargoContainer } from './entities/CargoContainer.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -1026,100 +1027,6 @@ class Dialogue {
 }
 
 
-class CargoContainer {
-    constructor(x, y) {
-        this.name = 'container';
-        this.x = x !== undefined ? x : randomMinMax(80, game.world.width - 80);
-        this.y = y !== undefined ? y : randomMinMax(80, game.world.height - 80);
-        this.width = 40;
-        this.height = 24;
-        this.health = 30;
-        this.maxHealth = 30;
-        this.velocityX = 0;
-        this.velocityY = 0;
-        this.isTowed = false;
-        this.discovered = false;
-        this.contents = Math.random() < 0.7 ? 'salvage' : null;
-    }
-
-    update(deltaTime) {
-        if (this.isTowed) return;
-        this.x += this.velocityX * deltaTime / 1000;
-        this.y += this.velocityY * deltaTime / 1000;
-        this.velocityX *= 0.99;
-        this.velocityY *= 0.99;
-        if (this.x - this.width / 2 < 0 || this.x + this.width / 2 > game.world.width) this.velocityX *= -1;
-        if (this.y - this.height / 2 < 0 || this.y + this.height / 2 > game.world.height) this.velocityY *= -1;
-        this.x = Math.max(this.width / 2, Math.min(this.x, game.world.width - this.width / 2));
-        this.y = Math.max(this.height / 2, Math.min(this.y, game.world.height - this.height / 2));
-    }
-
-    draw() {
-        const sx = this.x - game.cameraOffset.x;
-        const sy = this.y - game.cameraOffset.y;
-        const w = this.width;
-        const h = this.height;
-        game.ctx.save();
-        game.ctx.translate(sx, sy);
-        // Body
-        game.ctx.fillStyle = '#C8A012';
-        game.ctx.fillRect(-w / 2, -h / 2, w, h);
-        // Border
-        game.ctx.strokeStyle = '#7A6000';
-        game.ctx.lineWidth = 2;
-        game.ctx.strokeRect(-w / 2, -h / 2, w, h);
-        // Cross dividers
-        game.ctx.beginPath();
-        game.ctx.moveTo(0, -h / 2);
-        game.ctx.lineTo(0, h / 2);
-        game.ctx.moveTo(-w / 2, 0);
-        game.ctx.lineTo(w / 2, 0);
-        game.ctx.lineWidth = 1;
-        game.ctx.stroke();
-        // Health bar
-        game.ctx.fillStyle = '#222';
-        game.ctx.fillRect(-w / 2, -h / 2 - 7, w, 4);
-        game.ctx.fillStyle = `hsl(${(this.health / this.maxHealth) * 120}, 100%, 45%)`;
-        game.ctx.fillRect(-w / 2, -h / 2 - 7, w * (this.health / this.maxHealth), 4);
-        // Tow indicator
-        if (this.isTowed) {
-            game.ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-            game.ctx.lineWidth = 1;
-            game.ctx.setLineDash([3, 3]);
-            game.ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
-            game.ctx.setLineDash([]);
-        }
-        game.ctx.restore();
-    }
-
-    takeDamage(amount) {
-        this.health -= amount;
-        if (this.health <= 0) {
-            this.destroy();
-        }
-    }
-
-    destroy() {
-        if (this.isTowed && game.ship.towedContainer === this) {
-            game.ship.towedContainer = null;
-        }
-        // 50% chance to drop contents as collectable scrap
-        if (this.contents && Math.random() < 0.5) {
-            const drop = new Scrap(this.x, this.y, this.contents);
-            game.scrap.push(drop);
-        }
-        // Debris fragments
-        for (let i = 0; i < 4; i++) {
-            game.scrap.push(new Scrap(this.x, this.y, null));
-        }
-        const idx = game.containers.indexOf(this);
-        if (idx !== -1) game.containers.splice(idx, 1);
-        const eidx = game.entities.indexOf(this);
-        if (eidx !== -1) game.entities.splice(eidx, 1);
-    }
-}
-
-
 class Scrap {
     constructor(x, y, contents) {
         this.name = 'scrap';
@@ -1910,7 +1817,7 @@ function clearEntities() {
 
 function spawnInitialContainers() {
     for (let i = 0; i < 5; i++) {
-        const container = new CargoContainer();
+        const container = new CargoContainer(game);
         game.containers.push(container);
         game.entities.push(container);
     }
@@ -2150,3 +2057,4 @@ function spawnOffsetGroup(primaryObj, count = 2, spacing = 10, spreadAngle = 0, 
 const shipSVG = `
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1110" height="1110" viewBox="817.5,362.5,110,110"><g id="document" fill="#ffffff" fill-rule="nonzero" stroke="#000000" stroke-width="0" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" ><rect x="5202.27273" y="1647.72727" transform="scale(0.15714,0.22)" width="700" height="500" id="Shape 1 1" vector-effect="non-scaling-stroke"/></g><g fill="white" fill-rule="nonzero" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"><g id="stage"><g id="layer1 1"><path d="M821.60345,466.98276l41.81819,-87.88263l7.42319,-15.60013l52.65517,102.79311l-51.44828,-27.18965z" id="Path 3"/><path d="M868.01726,412.38048l6.75056,-0.02159l5.04149,20.55973l-16.36421,0.3818z" id="Path 3"/><path d="M870.87479,369.24255l0.64607,43.36469" id="Path 3"/><path d="M871.85375,460.37879l5.79776,-5.75343l-12.15152,-0.03429z" id="Path 3"/><path d="M874.15248,426.12645" id="Path 3"/><path d="M849.41412,447.8546l21.46448,-78.27112l24.75585,78.18049" id="Path 3"/><path d="M822.40716,465.29373l49.43258,-31.91997l51.00257,31.63544" id="Path 1 1"/><path d="M863.26579,444.29662l2.23421,7.02571h12l2.14622,-8.20529" id="Path 3"/><path d="M864.93246,450.72458l-5.90909,3.33333l-2.87879,-2.12121l1.61797,-4.9366" id="Path 3"/><path d="M878.65151,450.52932l5.90909,3.33333l2.87879,-2.12121l-1.61797,-4.9366" id="Path 2 1"/><path d="M871.75064,438.9064l-0.30303,12.41593" id="Path 3"/><path d="M872.81125,411.78519" id="Path 3"/></g></g></g></svg>
 `;
+export { Scrap };

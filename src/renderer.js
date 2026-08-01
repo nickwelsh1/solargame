@@ -557,6 +557,21 @@ export class Renderer {
 
         game.dialogue.draw();
 
+        if (game.state.game_over) {
+            this.drawRectangle(game.resetBtnSize);
+            this.ctx.save();
+            this.ctx.fillStyle = 'white';
+            this.ctx.font = `bold ${Math.min(game.resetBtnSize.height * 0.5, 20)}px sans-serif`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(
+                'RESTART',
+                game.resetBtnSize.posX + game.resetBtnSize.width / 2,
+                game.resetBtnSize.posY + game.resetBtnSize.height / 2,
+            );
+            this.ctx.restore();
+        }
+
         const isOverAsteroid = game.isPointOverAsteroid(
             game.ui.mouseX,
             game.ui.mouseY,
