@@ -357,7 +357,7 @@ export class Renderer {
     }
 
     drawRectangle(buttonSize, offset = { x: 0, y: 0 }, colour) {
-        let fill = colour || 'hsla(320, 100%, 83%, 0.50)';
+        const fill = colour || 'hsla(320, 100%, 83%, 0.50)';
         // Stroke style
         this.ctx.fillStyle = fill;
         this.ctx.strokeStyle = 'pink';
@@ -399,7 +399,7 @@ export class Renderer {
 
         // Set the image source to the SVG string
         // img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);   //
-        img.src = 'data:image/svg+xml;charset=utf-8,' + svgString;
+        img.src = `data:image/svg+xml;charset=utf-8,${svgString}`;
 
         // Load the image
         img.onload = () => {
@@ -461,13 +461,12 @@ export class Renderer {
             0,
             Math.PI * 2,
         );
-        this.ctx.fillStyle =
-            'rgba(200, 200, 200, ' + (0.3 + brakeProgress * 0.3) + ')';
+        this.ctx.fillStyle = `rgba(200, 200, 200, ${0.3 + brakeProgress * 0.3})`;
         this.ctx.fill();
         this.ctx.restore();
     }
 
-    draw(game, timestamp) {
+    draw(game, _timestamp) {
         this.game = game;
 
         if (game.state.screen === 'menu') {
