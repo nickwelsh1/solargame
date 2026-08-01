@@ -7,7 +7,32 @@ import {
     checkBoundsRect,
 } from './utils/helpers.js';
 
-let game = {};
+let game;
+
+class Game {
+    constructor() { }
+
+    resize() {
+        this.camera.width = this.canvas.width = window.innerWidth - 8;
+        this.camera.height = this.canvas.height = window.innerHeight - 60;
+        this.camera.bottom = this.camera.top + this.camera.height;
+        this.camera.right = this.camera.left + this.camera.width;
+        this.camera.centerX = this.camera.width * 0.5 + this.camera.top;
+        this.camera.centerY = this.camera.height * 0.5 + this.camera.left;
+        this.world.width = 4000; // 4 * camera.width;
+        this.world.height = 3000; // 4 * camera.height;
+
+        this.MINIMAP_SCALE = this.camera.width / 5; // 8% of the canvas size
+        this.MINIMAP_MARGIN = 10; // Margin from the top-left corner
+    }
+
+    start() {
+        this.state.screen = 'menu';
+        requestAnimationFrame(menuLoop);
+    }
+}
+
+game = new Game();
 
 game.canvas = document.getElementById('gameCanvas');
 game.ctx = game.canvas.getContext('2d');
@@ -30,7 +55,7 @@ game.camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, heigh
 game.MINIMAP_SCALE = 0;
 game.MINIMAP_MARGIN = 0;
 
-resizeCanvas();
+game.resize();
 game.cameraOffset = { x: 0, y: 0 };
 game.entities = [];
 
@@ -1747,11 +1772,6 @@ function drawRectangle(buttonSize, offset = { x: 0, y: 0 }, colour) {
     game.ctx.strokeRect(buttonSize.posX + offset.x, buttonSize.posY + offset.y, buttonSize.width, buttonSize.height);
 }
 
-function showMainMenu() {
-    game.state.screen = 'menu';
-    requestAnimationFrame(menuLoop);
-}
-
 function menuLoop() {
     if (game.state.screen === 'menu') {
         drawMainMenu();
@@ -2274,7 +2294,7 @@ function initGame() {
     requestAnimationFrame(gameLoop);
 }
 
-showMainMenu();
+
 
 function isPointOverAsteroid(x, y) {
     // Convert screen coordinates to world coordinates by adding camera offset
@@ -2326,23 +2346,7 @@ game.canvas.addEventListener('touchend', (e) => {
 });
 
 
-window.addEventListener('resize', resizeCanvas);
-
-function resizeCanvas() {
-    game.camera.width = game.canvas.width = window.innerWidth - 8;
-    game.camera.height = game.canvas.height = window.innerHeight - 60;
-    game.camera.bottom = game.camera.top + game.camera.height;
-    game.camera.right = game.camera.left + game.camera.width;
-    game.camera.centerX = game.camera.width * 0.5 + game.camera.top;
-    game.camera.centerY = game.camera.height * 0.5 + game.camera.left;
-    game.world.width = 4000; // 4 * camera.width;
-    game.world.height = 3000; // 4 * camera.height;
-
-    game.MINIMAP_SCALE = game.camera.width / 5; // 8% of the canvas size
-    game.MINIMAP_MARGIN = 10; // Margin from the top-left corner
-}
-
-
+window.addEventListener('resize', () => game.resize());
 
 function initDebugArea() {
     const debugLimit = 50;
@@ -2380,6 +2384,8 @@ function isMobile() {
     }
     return (mobileChance > 2);
 }
+
+export { Game, game };
 
 if (isMobile()) {
     console.log('Mobile device detected');
