@@ -1,4 +1,6 @@
 import { addVelocities, checkCircleCollision } from './utils/physics.js';
+import { World } from './world.js';
+import { Camera } from './camera.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -8,32 +10,6 @@ import {
 } from './utils/helpers.js';
 
 let game;
-
-class World {
-    constructor() {
-        this.top = 0;
-        this.right = 0;
-        this.bottom = 0;
-        this.left = 0;
-        this.center = 0;
-        this.width = 0;
-        this.height = 0;
-    }
-}
-
-class Camera {
-    constructor() {
-        this.top = 0;
-        this.right = 0;
-        this.bottom = 0;
-        this.left = 0;
-        this.center = 0;
-        this.width = 0;
-        this.height = 0;
-        this.centerX = 0;
-        this.centerY = 0;
-    }
-}
 
 class Game {
     constructor() {
