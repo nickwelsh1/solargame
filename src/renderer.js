@@ -518,7 +518,3 @@ export function createRenderer() {
         },
     };
 }
-
-const Renderer = createRenderer;
-
-export { Renderer };

@@ -1,4 +1,4 @@
-import { Renderer } from './renderer.js';
+import { createRenderer } from './renderer.js';
 import { CONFIG } from './config.js';
 import { shipSVG3, loadSVGString } from './assets.js';
 import { World } from './world.js';
@@ -20,7 +20,7 @@ function createGame() {
 function initGameObject(game) {
     game.lastTime = 0;
 
-    game.renderer = new Renderer();
+    game.renderer = createRenderer();
     game.canvas = game.renderer.canvas;
     game.ctx = game.renderer.ctx;
     game.weaponButton = document.getElementById('weaponButton');
