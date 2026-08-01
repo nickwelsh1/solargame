@@ -49,3 +49,18 @@ export function checkBoundsRect(point, rect) {
 
     return checkX && checkY;
 }
+
+export function isMobile() {
+    let mobileChance = 0;
+
+    if (typeof screen.orientation !== 'undefined') {
+        mobileChance++;
+    }
+    if (navigator.userAgent.indexOf('Mobi') > -1) {
+        mobileChance++;
+    }
+    if (Math.min(window.screen.width, window.screen.height) < 768) {
+        mobileChance++;
+    }
+    return mobileChance > 2;
+}

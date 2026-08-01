@@ -14,12 +14,14 @@ import { Beam } from './entities/Beam.js';
 import { Projectile, Laser, Bullet, Missile } from './entities/Projectile.js';
 import { Asteroid } from './entities/Asteroid.js';
 import { Ship } from './entities/Ship.js';
+import { Dialogue } from './entities/Dialogue.js';
 import {
     randomMinMax,
     calculateNewPosition,
     logarithmicIncrease,
     countObjectProperties,
     checkBoundsRect,
+    isMobile,
 } from './utils/helpers.js';
 
 let game;
@@ -215,92 +217,7 @@ game.init();
 
 
 
-class Dialogue {
 
-    constructor() {
-        this.name = 'dialogue';
-        // this.x = world.width / 2;
-        // this.x = camera.width / 2;
-        // Set text styles
-        this.fontSize = 30;
-        this.textColor = 'hsl(57, 100%, 83%)';
-
-        // Calculate text position for centering
-        this.textWidth = game.ctx.measureText(game.ui.dialogueText).width;
-        this.textHeight = this.fontSize; // Extract font size
-        this.x = game.camera.width / 2;
-        this.y = game.camera.height / 2;
-
-        // Calculate rectangle dimensions
-        this.rectWidth = game.camera.width * (isMobile() ? 0.9 : 0.5); // textWidth + 20;
-        this.rectHeight = game.camera.height * 0.3; // textHeight + 20;
-        this.rectX = this.x - this.rectWidth / 2;
-        this.rectY = this.y - this.rectHeight / 2;
-
-        this.btnDelay = 300;
-    }
-
-    draw() {
-        // draw the dialogue and text
-        if (game.state.game_over === false && game.ui.dialogueText.length < 1) {
-            return;
-        }
-        game.ctx.font = `bold ${this.fontSize}px sans-serif`;
-        game.ctx.textAlign = 'center';
-        game.ctx.textBaseline = 'middle';
-
-        // Draw the rectangle
-        // ctx.fillStyle = 'skyblue'; // Or any color you prefer
-        // ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
-
-        this.drawRoundedRectangle(this.rectX, this.rectY, this.rectWidth, this.rectHeight);
-
-        this.drawText(this.x, game.camera.height * 0.45, game.ui.dialogueText);
-    }
-
-    // would be easier
-    drawRoundedRectangle(rectX, rectY, rectWidth, rectHeight) {
-        // Draw rounded rectangle
-        const radius = 10; // Adjust the radius as needed
-        game.ctx.strokeStyle = this.textColor; // Or any color you prefer
-        game.ctx.lineWidth = 2; // Adjust the stroke width as needed
-        game.ctx.beginPath();
-        game.ctx.moveTo(rectX + radius, rectY);
-        game.ctx.lineTo(rectX + rectWidth - radius, rectY);
-        game.ctx.arc(rectX + rectWidth - radius, rectY + radius, radius, Math.PI * 3 / 2, Math.PI * 2);
-        game.ctx.lineTo(rectX + rectWidth, rectY + rectHeight - radius);
-        game.ctx.arc(rectX + rectWidth - radius, rectY + rectHeight - radius, radius, 0, Math.PI / 2);
-        game.ctx.lineTo(rectX + radius, rectY + rectHeight);
-        game.ctx.arc(rectX + radius, rectY + rectHeight - radius, radius, Math.PI / 2, Math.PI);
-        game.ctx.lineTo(rectX, rectY + radius);
-        game.ctx.arc(rectX + radius, rectY + radius, radius, Math.PI, Math.PI * 3 / 2);
-        game.ctx.closePath();
-        game.ctx.stroke();
-    }
-
-    drawText(x, y, text) {
-        // Draw the text
-        game.ctx.fillStyle = this.textColor; // Or any color you prefer
-        game.ctx.fillText(text, x, y);
-    }
-
-    update(deltaTime) {
-        if (game.state.game_over === false && game.ui.dialogueText.length < 1) {
-            return;
-        }
-        // message.innerText = (deltaTime + "").substring(0, 2);
-        // Check if it's time to draw the rectangle
-        this.btnDelay -= deltaTime;
-        if (this.btnDelay <= 0) {
-            // Draw the rectangle
-            // ctx.fillStyle = 'blue';
-            this.drawRoundedRectangle(this.rectX * 1.5, this.rectY * 1.5, this.rectWidth * 0.5, this.rectHeight * 0.3);
-            this.drawText(this.x, this.y + game.camera.height * 0.07, "restart");
-            // ctx.fillRect(this.rectX, this.rectY, this.rectWidth, this.rectHeight);
-            this.btnDelay = 0; // Reset the delay
-        }
-    }
-}
 
 
 function spawnInitialAsteroids() {
@@ -1073,7 +990,7 @@ function initGame() {
     game.containers = [];
     game.scrap = [];
     startTimer(5);
-    game.dialogue = new Dialogue();
+    game.dialogue = new Dialogue(game);
     game.entities.push(game.dialogue);
     game.ship = new Ship(game);
     game.entities.push(game.ship);
@@ -1148,33 +1065,7 @@ function initDebugArea() {
     return el;
 }
 
-function debug(text) {
-    if (!game || !game.debugEl) return;
-    const codeElement = document.createElement('code');
-    codeElement.textContent = text;
-    game.debugEl.appendChild(codeElement);
-}
 
-function isMobile() {
-    let mobileChance = 0;
-
-    debug(`screen.orientation: ${screen.orientation.type}`);
-    // debug(navigator.userAgent);
-    debug(`navigator.maxTouchPoints: ${navigator.maxTouchPoints}`);
-    debug(`screen w & h: ${window.screen.width}, ${window.screen.height}`);
-    debug(`min of screen w & h: ${Math.min(window.screen.width, window.screen.height)}`);
-    // debug(`window.matchMedia(): ${window.matchMedia("only screen and (max-width: 760px)").matches}`)
-    if (typeof screen.orientation !== "undefined") {
-        mobileChance++;
-    }
-    if (navigator.userAgent.indexOf('Mobi') > -1) {
-        mobileChance++;
-    }
-    if (Math.min(window.screen.width, window.screen.height) < 768) {
-        mobileChance++;
-    }
-    return (mobileChance > 2);
-}
 
 Game.prototype.isUIButtonClicked = isUIButtonClicked;
 Game.prototype.checkTimer = checkTimer;
@@ -1184,7 +1075,6 @@ export { Game, game };
 
 if (isMobile()) {
     console.log('Mobile device detected');
-    debug('Mobile device detected');
 }
 
 
