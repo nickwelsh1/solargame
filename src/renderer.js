@@ -1,4 +1,5 @@
 import * as assets from './assets.js';
+import { isUIButtonClicked } from './input.js';
 
 export class Renderer {
     constructor() {
@@ -256,10 +257,12 @@ export class Renderer {
             this.ctx.fillText(subtitle, this.game.camera.width / 2, subY);
         }
         // Buttons
-        const nearStart = this.game.isUIButtonClicked(
+        const nearStart = isUIButtonClicked(
+            this.game,
             this.game.menuStartBtnSize,
         );
-        const nearCtrl = this.game.isUIButtonClicked(
+        const nearCtrl = isUIButtonClicked(
+            this.game,
             this.game.menuControlsBtnSize,
         );
         this.drawMenuButton(
@@ -315,7 +318,7 @@ export class Renderer {
         this.drawMenuButton(
             this.game.menuBackBtnSize,
             'BACK',
-            this.game.isUIButtonClicked(this.game.menuBackBtnSize),
+            isUIButtonClicked(this.game, this.game.menuBackBtnSize),
         );
     }
 

@@ -1,7 +1,7 @@
-export class UI {
-    constructor() {
-        this.mouseX = 0;
-        this.mouseY = 0;
-        this.dialogueText = '';
-    }
+export function createUI() {
+    return {
+        mouseX: 0,
+        mouseY: 0,
+        dialogueText: '',
+    };
 }
