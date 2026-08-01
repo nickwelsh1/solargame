@@ -11,6 +11,7 @@
 - **Node version:** 22.15.0 (Volta pinned)
 - **Vite version:** ^6.2.4
 - **pnpm version:** 10.27.0
+- **Biome version:** 2.2.5 (is installed globally)
 
 ## How to run
 
