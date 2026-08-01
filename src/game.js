@@ -12,6 +12,82 @@ let game;
 class Game {
     constructor() {
         this.lastTime = 0;
+
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.weaponButton = document.getElementById('weaponButton');
+        this.message = document.querySelector('.message');
+        this.debugEl = initDebugArea();
+
+        this.ship = null;
+        this.asteroids = [];
+        this.projectiles = [];
+        this.particles = [];
+        this.planets = [];
+        this.dialogue = null;
+        this.beams = []; // Array to track active beams
+        this.containers = [];
+        this.scrap = [];
+        this.world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
+        this.camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
+
+        this.MINIMAP_SCALE = 0;
+        this.MINIMAP_MARGIN = 0;
+
+        this.resize();
+
+        this.cameraOffset = { x: 0, y: 0 };
+        this.entities = [];
+
+        // Game State
+        this.state = {
+            screen: 'menu', // 'menu' | 'controls' | 'game'
+            game_over: false,
+            game_paused: false,
+            score: 0,
+            timer: {},
+            initialContainerCount: 0,
+        }
+
+        this.CENTER_CIRCLE_RADIUS = 50 * CONFIG.MOBILE_SCALE;  // Radius of the central UI circle for interaction
+        // debug(`cw, ch: ${camera.width}, ${camera.height}`);
+        this.CENTER_MAXTHRUST_RADIUS = 0.5 * Math.min(this.camera.width, this.camera.height) - 8;  // Radius of the central UI circle for interaction
+        this.CENTER_LOWTHRUST_RADIUS = 0.5 * this.CENTER_MAXTHRUST_RADIUS + (0.5 * this.CENTER_CIRCLE_RADIUS);  // Radius of the central UI circle for interaction
+
+        // Input State
+        this.input = {
+            isDraggingFromCenter: false,  // For new drag-from-center movement
+            isMouseDown: false,
+            isShootingAsteroid: false,
+            isShooting: false, // New flag to track if shooting is active
+            centerHoldStartTime: 0, // Time when pointer down started in center circle
+            isBraking: false, // Whether ship is currently in braking mode
+            brakeStartTime: 0, // Time when braking started
+            brakeStartSpeed: 0, // Ship speed at start of brake
+            brakeTargetFraction: 0.5, // 0.5 = half speed, 0 = full stop
+            lastCenterTapTime: 0, // For double-tap detection
+            centerDownX: 0, // Pointer X when center circle was pressed
+            centerDownY: 0, // Pointer Y when center circle was pressed
+        }
+
+        this.ui = {
+            mouseX: 0,
+            mouseY: 0,
+            dialogueText: '',
+        }
+        this.rectangleDrawTimer = null; // legacy?
+
+        this.player = {
+            currentWeapon: 'machineGun',
+            BULLET_FIRE_RATE: 100,  // 100ms between shots
+            MISSILE_FIRE_RATE: 500, // 500ms between shots
+            LASER_FIRE_RATE: 1000,  // 1000ms between shots
+            BEAM_FIRE_RATE: 800,    // 800ms between shots
+            lastLaserFireTime: 0,
+            lastBulletFireTime: 0,
+            lastMissileFireTime: 0,
+            lastBeamFireTime: 0,
+        }
     }
 
     resize() {
@@ -34,33 +110,6 @@ class Game {
     }
 }
 
-game = new Game();
-
-game.canvas = document.getElementById('gameCanvas');
-game.ctx = game.canvas.getContext('2d');
-game.weaponButton = document.getElementById('weaponButton');
-game.message = document.querySelector('.message');
-game.debugEl = initDebugArea();
-
-game.ship = null;
-game.asteroids = [];
-game.projectiles = [];
-game.particles = [];
-game.planets = [];
-game.dialogue = null;
-game.beams = []; // Array to track active beams
-game.containers = [];
-game.scrap = [];
-game.world = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 }
-game.camera = { top: 0, right: 0, bottom: 0, left: 0, center: 0, width: 0, height: 0 };
-
-game.MINIMAP_SCALE = 0;
-game.MINIMAP_MARGIN = 0;
-
-game.resize();
-game.cameraOffset = { x: 0, y: 0 };
-game.entities = [];
-
 const CONFIG = Object.freeze({
     MOBILE_SCALE: 0.55,
     MAX_ENTITIES: 200,
@@ -69,55 +118,7 @@ const CONFIG = Object.freeze({
     INITIAL_ASTEROID_COUNT: 20,
 });
 
-// Game State
-game.state = {
-    screen: 'menu', // 'menu' | 'controls' | 'game'
-    game_over: false,
-    game_paused: false,
-    score: 0,
-    timer: {},
-    initialContainerCount: 0,
-}
-
-game.CENTER_CIRCLE_RADIUS = 50 * CONFIG.MOBILE_SCALE;  // Radius of the central UI circle for interaction
-// debug(`cw, ch: ${camera.width}, ${camera.height}`);
-game.CENTER_MAXTHRUST_RADIUS = 0.5 * Math.min(game.camera.width, game.camera.height) - 8;  // Radius of the central UI circle for interaction
-game.CENTER_LOWTHRUST_RADIUS = 0.5 * game.CENTER_MAXTHRUST_RADIUS + (0.5 * game.CENTER_CIRCLE_RADIUS);  // Radius of the central UI circle for interaction
-
-// Input State
-game.input = {
-    isDraggingFromCenter: false,  // For new drag-from-center movement
-    isMouseDown: false,
-    isShootingAsteroid: false,
-    isShooting: false, // New flag to track if shooting is active
-    centerHoldStartTime: 0, // Time when pointer down started in center circle
-    isBraking: false, // Whether ship is currently in braking mode
-    brakeStartTime: 0, // Time when braking started
-    brakeStartSpeed: 0, // Ship speed at start of brake
-    brakeTargetFraction: 0.5, // 0.5 = half speed, 0 = full stop
-    lastCenterTapTime: 0, // For double-tap detection
-    centerDownX: 0, // Pointer X when center circle was pressed
-    centerDownY: 0, // Pointer Y when center circle was pressed
-}
-
-game.ui = {
-    mouseX: 0,
-    mouseY: 0,
-    dialogueText: '',
-}
-game.rectangleDrawTimer = null; // legacy?
-
-game.player = {
-    currentWeapon: 'machineGun',
-    BULLET_FIRE_RATE: 100,  // 100ms between shots
-    MISSILE_FIRE_RATE: 500, // 500ms between shots
-    LASER_FIRE_RATE: 1000,  // 1000ms between shots
-    BEAM_FIRE_RATE: 800,    // 800ms between shots
-    lastLaserFireTime: 0,
-    lastBulletFireTime: 0,
-    lastMissileFireTime: 0,
-    lastBeamFireTime: 0,
-}
+game = new Game();
 
 const shipSVG2 = `
 <svg xmlns="http://www.w3.org/2000/svg" width="62" height="62"> <polygon points="34,12 26,30 28,32 32,30 30,32 30,32 34,30 34,32 36,32 36,30 38,32 38,32 38,30 42,32 44,32" fill=grey /> </svg>
@@ -1787,6 +1788,8 @@ Game.prototype.menuLoop = function () {
 };
 
 Game.prototype.loop = function (timestamp) {
+    window.__lastFrameTime = performance.now();
+    window.__frameCount = (window.__frameCount || 0) + 1;
     const deltaTime = timestamp - game.lastTime;
     game.lastTime = timestamp;
 
