@@ -1,6 +1,8 @@
 import { addVelocities, checkCircleCollision } from './utils/physics.js';
 import { World } from './world.js';
 import { Camera } from './camera.js';
+import { State } from './state.js';
+import { Input } from './input.js';
 import {
     randomMinMax,
     calculateNewPosition,
@@ -42,14 +44,7 @@ class Game {
         this.entities = [];
 
         // Game State
-        this.state = {
-            screen: 'menu', // 'menu' | 'controls' | 'game'
-            game_over: false,
-            game_paused: false,
-            score: 0,
-            timer: {},
-            initialContainerCount: 0,
-        }
+        this.state = new State();
 
         this.CENTER_CIRCLE_RADIUS = 50 * CONFIG.MOBILE_SCALE;  // Radius of the central UI circle for interaction
         // debug(`cw, ch: ${camera.width}, ${camera.height}`);
@@ -141,20 +136,7 @@ class Game {
         this.menuBackBtnSize = { width: this._menuBtnW * 0.6, height: this._menuBtnH, posX: this.camera.width / 2 - this._menuBtnW * 0.3, posY: this.camera.height * 0.82 };
 
         // Input State
-        this.input = {
-            isDraggingFromCenter: false,  // For new drag-from-center movement
-            isMouseDown: false,
-            isShootingAsteroid: false,
-            isShooting: false, // New flag to track if shooting is active
-            centerHoldStartTime: 0, // Time when pointer down started in center circle
-            isBraking: false, // Whether ship is currently in braking mode
-            brakeStartTime: 0, // Time when braking started
-            brakeStartSpeed: 0, // Ship speed at start of brake
-            brakeTargetFraction: 0.5, // 0.5 = half speed, 0 = full stop
-            lastCenterTapTime: 0, // For double-tap detection
-            centerDownX: 0, // Pointer X when center circle was pressed
-            centerDownY: 0, // Pointer Y when center circle was pressed
-        }
+        this.input = new Input();
 
         this.ui = {
             mouseX: 0,
