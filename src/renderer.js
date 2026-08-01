@@ -1,5 +1,6 @@
 import * as assets from './assets.js';
 import { isUIButtonClicked } from './input.js';
+import { isPointOverAsteroid } from './systems/collisions.js';
 import { checkTimer } from './systems/timer.js';
 
 export class Renderer {
@@ -549,7 +550,8 @@ export class Renderer {
             this.ctx.restore();
         }
 
-        const isOverAsteroid = game.isPointOverAsteroid(
+        const isOverAsteroid = isPointOverAsteroid(
+            game,
             game.ui.mouseX,
             game.ui.mouseY,
         );
