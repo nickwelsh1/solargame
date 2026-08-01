@@ -10,7 +10,9 @@ import {
 let game;
 
 class Game {
-    constructor() { }
+    constructor() {
+        this.lastTime = 0;
+    }
 
     resize() {
         this.camera.width = this.canvas.width = window.innerWidth - 8;
@@ -28,7 +30,7 @@ class Game {
 
     start() {
         this.state.screen = 'menu';
-        requestAnimationFrame(menuLoop);
+        requestAnimationFrame(() => game.menuLoop());
     }
 }
 
@@ -1772,7 +1774,7 @@ function drawRectangle(buttonSize, offset = { x: 0, y: 0 }, colour) {
     game.ctx.strokeRect(buttonSize.posX + offset.x, buttonSize.posY + offset.y, buttonSize.width, buttonSize.height);
 }
 
-function menuLoop() {
+Game.prototype.menuLoop = function () {
     if (game.state.screen === 'menu') {
         drawMainMenu();
     } else if (game.state.screen === 'controls') {
@@ -1780,12 +1782,11 @@ function menuLoop() {
     }
     drawCursorDot(false);
     if (game.state.screen !== 'game') {
-        requestAnimationFrame(menuLoop);
+        requestAnimationFrame(() => game.menuLoop());
     }
-}
+};
 
-game.lastTime = 0;
-function gameLoop(timestamp) {
+Game.prototype.loop = function (timestamp) {
     const deltaTime = timestamp - game.lastTime;
     game.lastTime = timestamp;
 
@@ -1964,7 +1965,7 @@ function gameLoop(timestamp) {
 
     drawCursorDot(isOverAsteroid);
 
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame((timestamp) => game.loop(timestamp));
 
     function drawDragFromCenterLine() {
         game.ctx.save();
@@ -1985,7 +1986,7 @@ function gameLoop(timestamp) {
         game.ctx.fill();
         game.ctx.restore();
     }
-}
+};
 
 // Mouse contrail tracking
 game.mouseContrail = {
@@ -2291,7 +2292,7 @@ function initGame() {
     createParticles();
     spawnInitialAsteroids();
     spawnInitialContainers();
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame((timestamp) => game.loop(timestamp));
 }
 
 
