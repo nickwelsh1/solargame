@@ -1,4 +1,9 @@
 import { checkBoundsRect } from './utils/helpers.js';
+import {
+    processPointerDown,
+    processPointerMove,
+    processPointerUp,
+} from './schemes.js';
 
 export function createInput() {
     return {
@@ -9,11 +14,16 @@ export function createInput() {
         centerHoldStartTime: 0,
         isBraking: false,
         brakeStartTime: 0,
+        brakeDurationMs: 400,
         brakeStartSpeed: 0,
         brakeTargetFraction: 0.5,
         lastCenterTapTime: 0,
         centerDownX: 0,
         centerDownY: 0,
+        tether: null,
+        pursuit: null,
+        wheel: null,
+        thrust: false,
     };
 }
 
@@ -47,6 +57,12 @@ export function handlePointerDown(event, game, callbacks) {
     // Handle menu screens before any game logic
     if (game.state.screen === 'menu') {
         if (isUIButtonClicked(game, game.menuStartBtnSize)) {
+            game.state.debugMode = false;
+            game.state.inputScheme = 'A';
+            callbacks.onStartGame();
+        } else if (isUIButtonClicked(game, game.menuDebugBtnSize)) {
+            game.state.debugMode = true;
+            game.state.inputScheme = 'A';
             callbacks.onStartGame();
         } else if (isUIButtonClicked(game, game.menuControlsBtnSize)) {
             game.state.screen = 'controls';
@@ -170,16 +186,33 @@ export function handlePointerDown(event, game, callbacks) {
         }
     }
 
-    // Start shooting if pointer is outside center circle and not on any UI button
+    // Handle scheme-swap button in debug mode
+    if (
+        game.state.debugMode &&
+        !game.state.game_over &&
+        isUIButtonClicked(game, game.schemeBtnSize)
+    ) {
+        const schemes = ['A', 'B', 'C', 'D'];
+        const nextIndex =
+            (schemes.indexOf(game.state.inputScheme) + 1) % schemes.length;
+        game.state.inputScheme = schemes[nextIndex];
+        game.input.tether = null;
+        game.input.pursuit = null;
+        game.input.wheel = null;
+        game.input.thrust = false;
+        game.input.isShooting = false;
+        game.input.isDraggingFromCenter = false;
+        return;
+    }
+
+    // Delegate all in-game pointer handling to the active input scheme
     const isOnUIButton =
         isUIButtonClicked(game, game.actionBtnSize) ||
         isUIButtonClicked(game, game.pauseBtnSize) ||
-        isUIButtonClicked(game, game.cargoBtnSize);
-    if (!game.state.game_over && !isInCenterCircle && !isOnUIButton) {
-        // Rotate ship to face mouse position before shooting
-        game.input.isShooting = true;
-        game.ship.setRotation(game.ui.mouseX, game.ui.mouseY);
-    }
+        isUIButtonClicked(game, game.cargoBtnSize) ||
+        (game.state.debugMode &&
+            isUIButtonClicked(game, game.schemeBtnSize));
+    processPointerDown(game, event, isOnUIButton);
 }
 
 export function handlePointerMove(event, game) {
@@ -196,73 +229,28 @@ export function handlePointerMove(event, game) {
         game.ui.mouseY >= 0 &&
         game.ui.mouseY <= game.canvas.height;
 
-    // If shooting is active and mouse is still down and within canvas
-    if (
-        game.input.isShooting &&
-        game.input.isMouseDown &&
-        isWithinCanvas &&
-        !game.state.game_over
-    ) {
-        const centerCircleX = game.camera.width / 2;
-        const centerCircleY = game.camera.height / 2;
-        const distToCenter = Math.hypot(
-            game.ui.mouseX - centerCircleX,
-            game.ui.mouseY - centerCircleY,
-        );
-        const isOutsideCenterCircle = distToCenter > game.CENTER_CIRCLE_RADIUS;
+    if (isWithinCanvas && !game.state.game_over) {
+        // Add point to contrail
+        game.mouseContrail.addPoint(game.ui.mouseX, game.ui.mouseY);
 
-        // Continue shooting if outside center circle
-        if (isOutsideCenterCircle) {
-            game.ship.setRotation(game.ui.mouseX, game.ui.mouseY); // Rotate ship to face mouse position before shooting
-            // ship.shoot();
-        } else {
-            // If moved back into center circle, stop shooting
-            game.input.isShooting = false;
-        }
+        // Delegate movement/rotation to the active input scheme
+        const isOnUIButton =
+            isUIButtonClicked(game, game.actionBtnSize) ||
+            isUIButtonClicked(game, game.pauseBtnSize) ||
+            isUIButtonClicked(game, game.cargoBtnSize) ||
+            (game.state.debugMode &&
+                isUIButtonClicked(game, game.schemeBtnSize));
+        processPointerMove(game, isOnUIButton);
     }
-
-    // Add point to contrail
-    game.mouseContrail.addPoint(game.ui.mouseX, game.ui.mouseY);
-
-    // REMOVED: This block is removed to disable drag-anywhere-to-move
-    // if (isMouseDown && !GAME_OVER && !isShootingAsteroid && !isUIButtonClicked(actionBtnSize)) {
-    //     if (!isDraggingFromCenter) {
-    //         ship.setTarget(mouseX, mouseY); // screen coords
-    //     }
-    //     // If isDraggingFromCenter is true, target is set on pointerUp. Visual feedback is drawn in gameLoop.
-    // }
 }
 
 export function handlePointerUp(game) {
-    if (game.input.isDraggingFromCenter) {
-        const dragDist = Math.hypot(
-            game.ui.mouseX - game.input.centerDownX,
-            game.ui.mouseY - game.input.centerDownY,
-        );
-        if (dragDist > 20) {
-            // Dragged far enough — steer to target, cancel any brake
-            game.input.isBraking = false;
-            game.ship.setTarget(game.ui.mouseX, game.ui.mouseY);
-        } else {
-            // Tap (no significant drag) — apply single or double-tap brake
-            const now = performance.now();
-            const isDoubleTap =
-                now - game.input.lastCenterTapTime < 350 &&
-                game.input.lastCenterTapTime > 0;
-            game.input.isBraking = true;
-            game.input.brakeStartTime = now;
-            game.input.brakeStartSpeed = game.ship.speed;
-            game.input.brakeTargetFraction = isDoubleTap ? 0 : 0.5;
-            game.input.lastCenterTapTime = isDoubleTap ? 0 : now;
-        }
-        game.input.isDraggingFromCenter = false; // Reset the flag
+    if (!game.state.game_over) {
+        processPointerUp(game, false);
     }
 
-    // Stop shooting when pointer is released
-    game.input.isShooting = false;
-
     game.input.isMouseDown = false;
-    game.input.centerHoldStartTime = 0; // Reset center hold time when pointer is released
+    game.input.centerHoldStartTime = 0;
     console.log('pointer up');
 }
 

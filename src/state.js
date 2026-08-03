@@ -6,5 +6,7 @@ export function createState() {
         score: 0,
         timer: {},
         initialContainerCount: 0,
+        debugMode: false,
+        inputScheme: 'A',
     };
 }

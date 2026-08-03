@@ -125,12 +125,20 @@ function initGameObject(game) {
         posY: game.camera.height - (game.camera.height * 0.1 + 10) * 3,
     };
 
+    game.schemeBtnSize = {
+        width: ((game.camera.width < 800) ? game.camera.width * 0.2 : game.camera.width * 0.1),
+        height: game.camera.height * 0.1,
+        posX: 10,
+        posY: game.camera.height - (game.camera.height * 0.1 + 10) * 4,
+    };
+
     game._menuBtnW = Math.min(308, game.camera.width * 0.66);
     game._menuBtnH = Math.max(50, game.camera.height * 0.09);
     game._menuBtnX = game.camera.width / 2 - game._menuBtnW / 2;
 
     game.menuStartBtnSize = { width: game._menuBtnW, height: game._menuBtnH, posX: game._menuBtnX, posY: game.camera.height * 0.48 };
     game.menuControlsBtnSize = { width: game._menuBtnW, height: game._menuBtnH, posX: game._menuBtnX, posY: game.camera.height * 0.60 };
+    game.menuDebugBtnSize = { width: game._menuBtnW, height: game._menuBtnH, posX: game._menuBtnX, posY: game.camera.height * 0.72 };
     game.menuBackBtnSize = { width: game._menuBtnW * 0.6, height: game._menuBtnH, posX: game.camera.width / 2 - game._menuBtnW * 0.3, posY: game.camera.height * 0.82 };
 
     game.input = createInput();

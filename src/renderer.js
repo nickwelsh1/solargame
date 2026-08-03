@@ -115,9 +115,9 @@ function drawMiniMap(ctx, game) {
     ctx.strokeStyle = 'hsla(170, 60%, 30%, 0.4)';
     ctx.strokeRect(
         game.MINIMAP_MARGIN +
-            (game.ship.x - game.camera.width / 2) * scaleFactor,
+        (game.ship.x - game.camera.width / 2) * scaleFactor,
         game.MINIMAP_MARGIN +
-            (game.ship.y - game.camera.height / 2) * scaleFactor,
+        (game.ship.y - game.camera.height / 2) * scaleFactor,
         game.camera.width * scaleFactor,
         game.camera.height * scaleFactor,
     );
@@ -134,6 +134,21 @@ function drawPauseIcon(ctx, game) {
     });
 }
 
+function drawDebugSchemeButton(ctx, game) {
+    if (!game.state.debugMode) return;
+    const label = `SCH: ${game.state.inputScheme}`;
+    drawRectangle(ctx, game.schemeBtnSize, { x: 0, y: 0 }, 'hsla(220, 80%, 45%, 0.75)');
+    ctx.font = `bold ${Math.round(game.schemeBtnSize.height * 0.3)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'white';
+    ctx.fillText(
+        label,
+        game.schemeBtnSize.posX + game.schemeBtnSize.width / 2,
+        game.schemeBtnSize.posY + game.schemeBtnSize.height / 2,
+    );
+}
+
 function drawCargoButton(ctx, game) {
     const hasTowed = game.ship && game.ship.towedContainer !== null;
     const nearbyContainer = game.containers.find(
@@ -144,8 +159,8 @@ function drawCargoButton(ctx, game) {
     const colour = hasTowed
         ? 'hsla(120, 80%, 35%, 0.85)'
         : canPickup
-          ? 'hsla(55, 100%, 45%, 0.75)'
-          : 'hsla(0, 0%, 35%, 0.45)';
+            ? 'hsla(55, 100%, 45%, 0.75)'
+            : 'hsla(0, 0%, 35%, 0.45)';
     drawRectangle(ctx, game.cargoBtnSize, { x: 0, y: 0 }, colour);
     ctx.font = `bold ${Math.round(game.cargoBtnSize.height * 0.3)}px sans-serif`;
     ctx.textAlign = 'center';
@@ -224,8 +239,10 @@ function drawMainMenu(ctx, game) {
     // Buttons
     const nearStart = isUIButtonClicked(game, game.menuStartBtnSize);
     const nearCtrl = isUIButtonClicked(game, game.menuControlsBtnSize);
+    const nearDebug = isUIButtonClicked(game, game.menuDebugBtnSize);
     drawMenuButton(ctx, game.menuStartBtnSize, 'START GAME', nearStart);
     drawMenuButton(ctx, game.menuControlsBtnSize, 'CONTROLS', nearCtrl);
+    drawMenuButton(ctx, game.menuDebugBtnSize, 'DEBUG MODE', nearDebug);
 }
 
 function drawControlsScreen(ctx, game) {
@@ -456,6 +473,7 @@ export function createRenderer() {
             drawRectangle(this.ctx, game.pauseBtnSize);
             drawPauseIcon(this.ctx, game);
             drawCargoButton(this.ctx, game);
+            drawDebugSchemeButton(this.ctx, game);
 
             drawCenterCircle(this.ctx, game, game.CENTER_CIRCLE_RADIUS);
             drawCenterCircle(this.ctx, game, game.CENTER_LOWTHRUST_RADIUS);

@@ -173,8 +173,28 @@ function setTarget(x, y) {
         this.movementAngle = newDirectionRad;
     }
 
-    // Set rotation to match movement direction
-    this.angle = this.movementAngle;
+    // Set ship facing and start thrust toward the new target
+    this.setThrust(this.targetSpeed, this.movementAngle);
+}
+
+function setThrust(targetSpeed, movementAngle) {
+    this.targetSpeed = targetSpeed;
+    this.movementAngle = movementAngle;
+    this.angle = movementAngle;
+    this.lastSpeedUpdateTime = performance.now();
+}
+
+function applyThrust(speed, angle) {
+    this.setThrust(speed, angle);
+}
+
+function applyBrake(targetFraction = 0, durationMs = 400) {
+    const currentTime = performance.now();
+    this.game.input.isBraking = true;
+    this.game.input.brakeStartTime = currentTime;
+    this.game.input.brakeDurationMs = durationMs;
+    this.game.input.brakeStartSpeed = this.speed;
+    this.game.input.brakeTargetFraction = targetFraction;
 }
 
 function update(deltaTime) {
@@ -183,7 +203,8 @@ function update(deltaTime) {
         const currentTime = performance.now();
         const brakeProgress = Math.min(
             1,
-            (currentTime - this.game.input.brakeStartTime) / 400,
+            (currentTime - this.game.input.brakeStartTime) /
+            (this.game.input.brakeDurationMs || 400),
         );
         const targetSpeed =
             this.game.input.brakeStartSpeed *
@@ -217,10 +238,10 @@ function update(deltaTime) {
                 return t === 0
                     ? 0
                     : t === 1
-                      ? 1
-                      : t < 0.5
-                        ? 2 ** (20 * t - 10) / 2
-                        : (2 - 2 ** (-20 * t + 10)) / 2;
+                        ? 1
+                        : t < 0.5
+                            ? 2 ** (20 * t - 10) / 2
+                            : (2 - 2 ** (-20 * t + 10)) / 2;
             };
 
             // Apply the easing function to the progress
@@ -428,6 +449,9 @@ export function createShip(game) {
     initShip.call(ship, game);
     ship.setRotation = setRotation;
     ship.setTarget = setTarget;
+    ship.setThrust = setThrust;
+    ship.applyThrust = applyThrust;
+    ship.applyBrake = applyBrake;
     ship.update = update;
     ship.draw = draw;
     ship.shoot = shoot;
