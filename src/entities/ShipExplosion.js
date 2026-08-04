@@ -1,8 +1,8 @@
 import { randomMinMax } from '../utils/helpers.js';
 
 const SPAWN_INTERVAL = 20;
-const EFFECT_DURATION = 400;
-const SQUARE_LIFE = 50;
+const EFFECT_DURATION = 800;
+const SQUARE_LIFE = 100;
 
 function initShipExplosion(game, ship) {
     this.game = game;
@@ -14,7 +14,7 @@ function initShipExplosion(game, ship) {
     this.lastSpawnTime = -Infinity;
     this.squares = [];
     this.finished = false;
-    this.fullSize = ship.radius * 2;
+    this.fullSize = ship.radius * 4;
 }
 
 function spawnSquare(now) {
