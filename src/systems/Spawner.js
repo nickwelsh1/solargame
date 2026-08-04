@@ -111,8 +111,11 @@ export function createSpawner(game) {
 export function initGame(game) {
     game.state.screen = 'game';
     game.state.score = 0;
+    game.state.game_over = false;
+    game.ui.dialogueText = '';
     game.containers = [];
     game.scrap = [];
+    game.shipExplosion = null;
     startTimer(game, 5);
     game.dialogue = createDialogue(game);
     game.entities.push(game.dialogue);
@@ -128,6 +131,7 @@ export function initGame(game) {
 export function resetGame(game) {
     game.state.game_over = false;
     game.ui.dialogueText = '';
+    game.shipExplosion = null;
     initGame(game);
     game.asteroids = [];
     game.projectiles = [];

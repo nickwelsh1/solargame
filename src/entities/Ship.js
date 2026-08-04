@@ -2,6 +2,7 @@ import { calculateNewPosition } from '../utils/helpers.js';
 import { addVelocities } from '../utils/physics.js';
 import { Beam } from './Beam.js';
 import { Bullet, Laser, Missile } from './Projectile.js';
+import { createShipExplosion } from './ShipExplosion.js';
 
 function initShip(game) {
     this.game = game;
@@ -15,7 +16,7 @@ function initShip(game) {
     this.movementAngle = 0;
     this.speed = 0;
     this.targetSpeed = 0;
-    this.maxSpeed = 400;
+    this.maxSpeed = 0.2;
     this.lastSpeedUpdateTime = 0;
     this.accelerationTimeMs = 1000; // Increased time to reach max speed to 200ms
     this.targetX = this.x;
@@ -23,6 +24,11 @@ function initShip(game) {
     this.mass = Math.PI * this.radius * this.radius;
     this.maxRotationSpeed = (Math.PI / 180) * 0.25; // 0.25 degree per ms in radians
     this.towedContainer = null;
+    this.health = 50;
+    this.maxHealth = 50;
+    this.dead = false;
+    this.damageWindowStart = 0;
+    this.damageWindowMax = 0;
 
     // Initialize ship's contrail
     this.contrail = {
@@ -78,6 +84,7 @@ function initShip(game) {
 }
 
 function setRotation(x, y) {
+    if (this.dead) return;
     // Only changes the ship's facing angle without affecting movement
     const dx = x + this.game.cameraOffset.x - this.x;
     const dy = y + this.game.cameraOffset.y - this.y;
@@ -117,6 +124,7 @@ function setRotation(x, y) {
 }
 
 function setTarget(x, y) {
+    if (this.dead) return;
     this.targetX = x + this.game.cameraOffset.x;
     this.targetY = y + this.game.cameraOffset.y;
     const distance = Math.hypot(this.targetX - this.x, this.targetY - this.y);
@@ -127,17 +135,15 @@ function setTarget(x, y) {
     let baseSpeed = 0;
     if (distance > this.game.CENTER_LOWTHRUST_RADIUS) {
         baseSpeed = 40;
-        this.maxSpeed = 40;
     } else if (distance > this.game.CENTER_CIRCLE_RADIUS) {
         baseSpeed = 20;
-        this.maxSpeed = 20;
     } else {
         baseSpeed = 0;
-        this.maxSpeed = 0;
     }
 
     // Apply speed adjustment factor (as was done in the original code)
-    this.targetSpeed = baseSpeed > 0 ? baseSpeed * speedAdjust : 0;
+    this.maxSpeed = baseSpeed * speedAdjust;
+    this.targetSpeed = this.maxSpeed;
 
     // Reset speed update timer to start acceleration/deceleration
     this.lastSpeedUpdateTime = performance.now();
@@ -178,17 +184,19 @@ function setTarget(x, y) {
 }
 
 function setThrust(targetSpeed, movementAngle) {
-    this.targetSpeed = targetSpeed;
+    this.targetSpeed = Math.min(Math.max(targetSpeed, 0), this.maxSpeed);
     this.movementAngle = movementAngle;
     this.angle = movementAngle;
     this.lastSpeedUpdateTime = performance.now();
 }
 
 function applyThrust(speed, angle) {
+    if (this.dead) return;
     this.setThrust(speed, angle);
 }
 
 function applyBrake(targetFraction = 0, durationMs = 400) {
+    if (this.dead) return;
     const currentTime = performance.now();
     this.game.input.isBraking = true;
     this.game.input.brakeStartTime = currentTime;
@@ -198,69 +206,74 @@ function applyBrake(targetFraction = 0, durationMs = 400) {
 }
 
 function update(deltaTime) {
-    // Handle braking if active
-    if (this.game.input.isBraking) {
-        const currentTime = performance.now();
-        const brakeProgress = Math.min(
-            1,
-            (currentTime - this.game.input.brakeStartTime) /
-            (this.game.input.brakeDurationMs || 400),
-        );
-        const targetSpeed =
-            this.game.input.brakeStartSpeed *
-            this.game.input.brakeTargetFraction;
-
-        if (brakeProgress >= 1) {
-            // Braking completed
-            this.speed = targetSpeed;
-            this.targetSpeed = targetSpeed;
-            this.game.input.isBraking = false;
-        } else {
-            // Linearly interpolate toward target speed
-            this.speed =
-                this.game.input.brakeStartSpeed +
-                (targetSpeed - this.game.input.brakeStartSpeed) * brakeProgress;
-        }
-    } else {
-        // Handle exponential acceleration/deceleration toward target speed
-        const currentTime = performance.now();
-        const elapsedMs = currentTime - this.lastSpeedUpdateTime;
-
-        if (this.speed !== this.targetSpeed) {
-            // Calculate progress factor based on acceleration time
-            const progressFactor = Math.min(
+    if (!this.dead) {
+        // Handle braking if active
+        if (this.game.input.isBraking) {
+            const currentTime = performance.now();
+            const brakeProgress = Math.min(
                 1,
-                elapsedMs / this.accelerationTimeMs,
+                (currentTime - this.game.input.brakeStartTime) /
+                    (this.game.input.brakeDurationMs || 400),
             );
+            const targetSpeed =
+                this.game.input.brakeStartSpeed *
+                this.game.input.brakeTargetFraction;
 
-            // Exponential ease-in-out function for smooth acceleration/deceleration
-            const easeInOutExpo = (t) => {
-                return t === 0
-                    ? 0
-                    : t === 1
-                        ? 1
-                        : t < 0.5
+            if (brakeProgress >= 1) {
+                // Braking completed
+                this.speed = targetSpeed;
+                this.targetSpeed = targetSpeed;
+                this.game.input.isBraking = false;
+            } else {
+                // Linearly interpolate toward target speed
+                this.speed =
+                    this.game.input.brakeStartSpeed +
+                    (targetSpeed - this.game.input.brakeStartSpeed) *
+                        brakeProgress;
+            }
+        } else {
+            // Handle exponential acceleration/deceleration toward target speed
+            const currentTime = performance.now();
+            const elapsedMs = currentTime - this.lastSpeedUpdateTime;
+
+            if (this.speed !== this.targetSpeed) {
+                // Calculate progress factor based on acceleration time
+                const progressFactor = Math.min(
+                    1,
+                    elapsedMs / this.accelerationTimeMs,
+                );
+
+                // Exponential ease-in-out function for smooth acceleration/deceleration
+                const easeInOutExpo = (t) => {
+                    return t === 0
+                        ? 0
+                        : t === 1
+                          ? 1
+                          : t < 0.5
                             ? 2 ** (20 * t - 10) / 2
                             : (2 - 2 ** (-20 * t + 10)) / 2;
-            };
+                };
 
-            // Apply the easing function to the progress
-            const easedProgress = easeInOutExpo(progressFactor);
+                // Apply the easing function to the progress
+                const easedProgress = easeInOutExpo(progressFactor);
 
-            // Interpolate between current speed and target speed
-            const speedDiff = this.targetSpeed - this.speed;
-            this.speed += speedDiff * easedProgress;
+                // Interpolate between current speed and target speed
+                const speedDiff = this.targetSpeed - this.speed;
+                this.speed += speedDiff * easedProgress;
 
-            // If we're very close to the target speed, snap to it
-            if (Math.abs(this.speed - this.targetSpeed) < 0.1) {
-                this.speed = this.targetSpeed;
-            }
+                // If we're very close to the target speed, snap to it
+                if (Math.abs(this.speed - this.targetSpeed) < 0.1) {
+                    this.speed = this.targetSpeed;
+                }
 
-            // Update the last speed update time if we've completed this acceleration
-            if (progressFactor >= 1) {
-                this.lastSpeedUpdateTime = currentTime;
+                // Update the last speed update time if we've completed this acceleration
+                if (progressFactor >= 1) {
+                    this.lastSpeedUpdateTime = currentTime;
+                }
             }
         }
+
+        this.speed = Math.min(this.speed, this.maxSpeed);
     }
 
     // Move the ship if it has speed
@@ -365,13 +378,16 @@ function draw() {
     // ctx.fill();
     this.game.ctx.translate(-8, 0);
     this.game.renderer.drawSVGImg(
-        this.game.shipImg,
+        this.dead && this.game.shipBlackImg
+            ? this.game.shipBlackImg
+            : this.game.shipImg,
         this.game.CONFIG.MOBILE_SCALE * 0.7,
     );
     this.game.ctx.restore();
 }
 
 function shoot() {
+    if (this.dead) return;
     if (this.game.entities.length >= this.game.CONFIG.MAX_ENTITIES + 10) return;
 
     const currentTime = performance.now();
@@ -444,6 +460,30 @@ function shoot() {
     this.game.entities.push(...projectile);
 }
 
+function takeDamage(amount) {
+    if (this.dead) return;
+    const now = performance.now();
+    if (now - this.damageWindowStart >= 300) {
+        this.damageWindowStart = now;
+        this.damageWindowMax = 0;
+    }
+    const toApply = Math.max(0, amount - this.damageWindowMax);
+    this.health -= toApply;
+    this.damageWindowMax = Math.max(this.damageWindowMax, amount);
+    if (this.health <= 0) {
+        this.destroy();
+    }
+}
+
+function destroy() {
+    if (this.dead) return;
+    this.dead = true;
+    this.health = 0;
+    this.game.input.isBraking = false;
+    this.game.input.isDraggingFromCenter = false;
+    this.game.shipExplosion = createShipExplosion(this.game, this);
+}
+
 export function createShip(game) {
     const ship = {};
     initShip.call(ship, game);
@@ -455,5 +495,7 @@ export function createShip(game) {
     ship.update = update;
     ship.draw = draw;
     ship.shoot = shoot;
+    ship.takeDamage = takeDamage;
+    ship.destroy = destroy;
     return ship;
 }

@@ -115,9 +115,9 @@ function drawMiniMap(ctx, game) {
     ctx.strokeStyle = 'hsla(170, 60%, 30%, 0.4)';
     ctx.strokeRect(
         game.MINIMAP_MARGIN +
-        (game.ship.x - game.camera.width / 2) * scaleFactor,
+            (game.ship.x - game.camera.width / 2) * scaleFactor,
         game.MINIMAP_MARGIN +
-        (game.ship.y - game.camera.height / 2) * scaleFactor,
+            (game.ship.y - game.camera.height / 2) * scaleFactor,
         game.camera.width * scaleFactor,
         game.camera.height * scaleFactor,
     );
@@ -137,7 +137,12 @@ function drawPauseIcon(ctx, game) {
 function drawDebugSchemeButton(ctx, game) {
     if (!game.state.debugMode) return;
     const label = `SCH: ${game.state.inputScheme}`;
-    drawRectangle(ctx, game.schemeBtnSize, { x: 0, y: 0 }, 'hsla(220, 80%, 45%, 0.75)');
+    drawRectangle(
+        ctx,
+        game.schemeBtnSize,
+        { x: 0, y: 0 },
+        'hsla(220, 80%, 45%, 0.75)',
+    );
     ctx.font = `bold ${Math.round(game.schemeBtnSize.height * 0.3)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -159,8 +164,8 @@ function drawCargoButton(ctx, game) {
     const colour = hasTowed
         ? 'hsla(120, 80%, 35%, 0.85)'
         : canPickup
-            ? 'hsla(55, 100%, 45%, 0.75)'
-            : 'hsla(0, 0%, 35%, 0.45)';
+          ? 'hsla(55, 100%, 45%, 0.75)'
+          : 'hsla(0, 0%, 35%, 0.45)';
     drawRectangle(ctx, game.cargoBtnSize, { x: 0, y: 0 }, colour);
     ctx.font = `bold ${Math.round(game.cargoBtnSize.height * 0.3)}px sans-serif`;
     ctx.textAlign = 'center';
@@ -317,6 +322,26 @@ function drawHUD(ctx, game) {
         game.camera.width / 2,
         10 + lineH,
     );
+    drawHealthBar(ctx, game);
+    ctx.restore();
+}
+
+function drawHealthBar(ctx, game) {
+    if (!game.ship) return;
+    const barW = 100;
+    const barH = 10;
+    const x = game.camera.width - barW - 12;
+    const y = 12;
+    const pct = game.ship.health / game.ship.maxHealth;
+
+    ctx.save();
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x, y, barW, barH);
+    ctx.fillStyle = `hsl(${pct * 120}, 100%, 45%)`;
+    ctx.fillRect(x, y, barW * pct, barH);
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, barW, barH);
     ctx.restore();
 }
 
@@ -358,7 +383,7 @@ function drawSVGImg(ctx, img, scale = 1) {
     assets.drawSVGImg(ctx, img, scale);
 }
 
-function drawCenterCircle(ctx, game, radius) {
+function drawCenterCircle(ctx, game, radius, alpha = 0.3) {
     const centerX = game.camera.width / 2;
     const centerY = game.camera.height / 2;
 
@@ -367,7 +392,7 @@ function drawCenterCircle(ctx, game, radius) {
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     // ctx.fillStyle = 'white';
     // ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
     ctx.lineWidth = 0.5;
     ctx.stroke();
     ctx.restore();
@@ -450,6 +475,8 @@ export function createRenderer() {
 
             game.ship.draw();
 
+            game.shipExplosion?.draw();
+
             game.asteroids.forEach((asteroid) => {
                 asteroid.draw();
             });
@@ -477,7 +504,12 @@ export function createRenderer() {
 
             drawCenterCircle(this.ctx, game, game.CENTER_CIRCLE_RADIUS);
             drawCenterCircle(this.ctx, game, game.CENTER_LOWTHRUST_RADIUS);
-            drawCenterCircle(this.ctx, game, game.CENTER_MAXTHRUST_RADIUS);
+            drawCenterCircle(
+                this.ctx,
+                game,
+                game.CENTER_MAXTHRUST_RADIUS,
+                game.state.inputScheme === 'B' ? 0.15 : 0.3,
+            );
 
             if (game.input.isDraggingFromCenter && game.input.isMouseDown) {
                 const currentTime = performance.now();

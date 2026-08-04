@@ -1,6 +1,6 @@
 import { createRenderer } from './renderer.js';
 import { CONFIG } from './config.js';
-import { shipSVG3, loadSVGString } from './assets.js';
+import { shipSVG3, shipSVG3Black, loadSVGString } from './assets.js';
 import { World } from './world.js';
 import { Camera } from './camera.js';
 import { createState } from './state.js';
@@ -9,6 +9,7 @@ import { Player } from './player.js';
 import { createUI } from './ui.js';
 import { createSpawner, initGame, resetGame } from './systems/Spawner.js';
 import { handleCollisions } from './systems/collisions.js';
+import { triggerGameOver } from './systems/timer.js';
 import { isMobile } from './utils/helpers.js';
 
 function createGame() {
@@ -36,6 +37,7 @@ function initGameObject(game) {
     game.beams = [];
     game.containers = [];
     game.scrap = [];
+    game.shipExplosion = null;
     game.world = new World();
     game.camera = new Camera();
 
@@ -172,6 +174,7 @@ function start(game) {
 
 function init(game) {
     game.shipImg = loadSVGString(shipSVG3);
+    game.shipBlackImg = loadSVGString(shipSVG3Black);
     game.resetBtnSize = {
         width: game.camera.width * (isMobile() ? 0.55 : 0.25),
         height: game.camera.height * 0.09,
@@ -260,6 +263,16 @@ function loop(game, timestamp) {
         }
 
         handleCollisions(game);
+
+        if (game.shipExplosion) {
+            const done = game.shipExplosion.update(deltaTime);
+            if (game.shipExplosion.finished && !game.state.game_over) {
+                triggerGameOver(game);
+            }
+            if (done) {
+                game.shipExplosion = null;
+            }
+        }
 
         game.dialogue.update(deltaTime);
     }
