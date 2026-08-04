@@ -6,8 +6,7 @@ const SQUARE_LIFE = 100;
 
 function initShipExplosion(game, ship) {
     this.game = game;
-    this.shipX = ship.x;
-    this.shipY = ship.y;
+    this.ship = ship;
     this.shipMomentumX = ship.speed * 1000 * Math.cos(ship.movementAngle);
     this.shipMomentumY = ship.speed * 1000 * Math.sin(ship.movementAngle);
     this.startTime = performance.now();
@@ -24,8 +23,8 @@ function spawnSquare(now) {
     const outwardY = Math.sin(angle) * speed;
 
     this.squares.push({
-        x: this.shipX,
-        y: this.shipY,
+        x: this.ship.x,
+        y: this.ship.y,
         outwardX,
         outwardY,
         spawnTime: now,
