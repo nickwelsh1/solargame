@@ -15,7 +15,7 @@ function initShip(game) {
     this.movementAngle = 0;
     this.speed = 0;
     this.targetSpeed = 0;
-    this.maxSpeed = 400;
+    this.maxSpeed = 0.2;
     this.lastSpeedUpdateTime = 0;
     this.accelerationTimeMs = 1000; // Increased time to reach max speed to 200ms
     this.targetX = this.x;
@@ -127,17 +127,15 @@ function setTarget(x, y) {
     let baseSpeed = 0;
     if (distance > this.game.CENTER_LOWTHRUST_RADIUS) {
         baseSpeed = 40;
-        this.maxSpeed = 40;
     } else if (distance > this.game.CENTER_CIRCLE_RADIUS) {
         baseSpeed = 20;
-        this.maxSpeed = 20;
     } else {
         baseSpeed = 0;
-        this.maxSpeed = 0;
     }
 
     // Apply speed adjustment factor (as was done in the original code)
-    this.targetSpeed = baseSpeed > 0 ? baseSpeed * speedAdjust : 0;
+    this.maxSpeed = baseSpeed * speedAdjust;
+    this.targetSpeed = this.maxSpeed;
 
     // Reset speed update timer to start acceleration/deceleration
     this.lastSpeedUpdateTime = performance.now();
@@ -178,7 +176,7 @@ function setTarget(x, y) {
 }
 
 function setThrust(targetSpeed, movementAngle) {
-    this.targetSpeed = targetSpeed;
+    this.targetSpeed = Math.min(Math.max(targetSpeed, 0), this.maxSpeed);
     this.movementAngle = movementAngle;
     this.angle = movementAngle;
     this.lastSpeedUpdateTime = performance.now();
@@ -204,7 +202,7 @@ function update(deltaTime) {
         const brakeProgress = Math.min(
             1,
             (currentTime - this.game.input.brakeStartTime) /
-            (this.game.input.brakeDurationMs || 400),
+                (this.game.input.brakeDurationMs || 400),
         );
         const targetSpeed =
             this.game.input.brakeStartSpeed *
@@ -238,10 +236,10 @@ function update(deltaTime) {
                 return t === 0
                     ? 0
                     : t === 1
-                        ? 1
-                        : t < 0.5
-                            ? 2 ** (20 * t - 10) / 2
-                            : (2 - 2 ** (-20 * t + 10)) / 2;
+                      ? 1
+                      : t < 0.5
+                        ? 2 ** (20 * t - 10) / 2
+                        : (2 - 2 ** (-20 * t + 10)) / 2;
             };
 
             // Apply the easing function to the progress
@@ -262,6 +260,8 @@ function update(deltaTime) {
             }
         }
     }
+
+    this.speed = Math.min(this.speed, this.maxSpeed);
 
     // Move the ship if it has speed
     if (this.speed > 0) {

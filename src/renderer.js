@@ -358,7 +358,7 @@ function drawSVGImg(ctx, img, scale = 1) {
     assets.drawSVGImg(ctx, img, scale);
 }
 
-function drawCenterCircle(ctx, game, radius) {
+function drawCenterCircle(ctx, game, radius, alpha = 0.3) {
     const centerX = game.camera.width / 2;
     const centerY = game.camera.height / 2;
 
@@ -367,7 +367,7 @@ function drawCenterCircle(ctx, game, radius) {
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     // ctx.fillStyle = 'white';
     // ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
     ctx.lineWidth = 0.5;
     ctx.stroke();
     ctx.restore();
@@ -477,7 +477,12 @@ export function createRenderer() {
 
             drawCenterCircle(this.ctx, game, game.CENTER_CIRCLE_RADIUS);
             drawCenterCircle(this.ctx, game, game.CENTER_LOWTHRUST_RADIUS);
-            drawCenterCircle(this.ctx, game, game.CENTER_MAXTHRUST_RADIUS);
+            drawCenterCircle(
+                this.ctx,
+                game,
+                game.CENTER_MAXTHRUST_RADIUS,
+                game.state.inputScheme === 'B' ? 0.15 : 0.3,
+            );
 
             if (game.input.isDraggingFromCenter && game.input.isMouseDown) {
                 const currentTime = performance.now();

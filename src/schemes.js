@@ -115,12 +115,15 @@ function upA(game) {
 
 /* =========================================================
    Scheme B - Spring Tether / Slingshot
-   Left half = aim+tether; right half = fire
+   Inside the 2nd (low-thrust) circle = aim+tether; outside = fire
    ========================================================= */
 
 function downB(game, isOnUi) {
     if (isOnUi) return;
-    if (game.ui.mouseX < game.camera.width / 2) {
+    const cx = game.camera.width / 2;
+    const cy = game.camera.height / 2;
+    const dist = Math.hypot(game.ui.mouseX - cx, game.ui.mouseY - cy);
+    if (dist <= game.CENTER_LOWTHRUST_RADIUS) {
         game.input.tether = {
             active: true,
             anchorX: game.ui.mouseX,
