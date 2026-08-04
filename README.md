@@ -1,10 +1,13 @@
 # solargame
 
 - To run type
-  `pnpm run dev`
+  `pnpm dev`
 
 - To build type
-  `pnpm run build`
+  `pnpm build`
 
 - To preview type
-  `pnpm run preview`
+  `pnpm preview`
+
+- To deploy just merge to release branch
+`git checkout release && git merge main && git push origin release && git checkout main`
