@@ -2,6 +2,7 @@ import { calculateNewPosition } from '../utils/helpers.js';
 import { addVelocities } from '../utils/physics.js';
 import { Beam } from './Beam.js';
 import { Bullet, Laser, Missile } from './Projectile.js';
+import { createShipExplosion } from './ShipExplosion.js';
 
 function initShip(game) {
     this.game = game;
@@ -23,6 +24,11 @@ function initShip(game) {
     this.mass = Math.PI * this.radius * this.radius;
     this.maxRotationSpeed = (Math.PI / 180) * 0.25; // 0.25 degree per ms in radians
     this.towedContainer = null;
+    this.health = 50;
+    this.maxHealth = 50;
+    this.dead = false;
+    this.damageWindowStart = 0;
+    this.damageWindowMax = 0;
 
     // Initialize ship's contrail
     this.contrail = {
@@ -196,6 +202,7 @@ function applyBrake(targetFraction = 0, durationMs = 400) {
 }
 
 function update(deltaTime) {
+    if (this.dead) return;
     // Handle braking if active
     if (this.game.input.isBraking) {
         const currentTime = performance.now();
@@ -365,13 +372,16 @@ function draw() {
     // ctx.fill();
     this.game.ctx.translate(-8, 0);
     this.game.renderer.drawSVGImg(
-        this.game.shipImg,
+        this.dead && this.game.shipBlackImg
+            ? this.game.shipBlackImg
+            : this.game.shipImg,
         this.game.CONFIG.MOBILE_SCALE * 0.7,
     );
     this.game.ctx.restore();
 }
 
 function shoot() {
+    if (this.dead) return;
     if (this.game.entities.length >= this.game.CONFIG.MAX_ENTITIES + 10) return;
 
     const currentTime = performance.now();
@@ -444,6 +454,28 @@ function shoot() {
     this.game.entities.push(...projectile);
 }
 
+function takeDamage(amount) {
+    if (this.dead) return;
+    const now = performance.now();
+    if (now - this.damageWindowStart >= 300) {
+        this.damageWindowStart = now;
+        this.damageWindowMax = 0;
+    }
+    const toApply = Math.max(0, amount - this.damageWindowMax);
+    this.health -= toApply;
+    this.damageWindowMax = Math.max(this.damageWindowMax, amount);
+    if (this.health <= 0) {
+        this.destroy();
+    }
+}
+
+function destroy() {
+    if (this.dead) return;
+    this.dead = true;
+    this.health = 0;
+    this.game.shipExplosion = createShipExplosion(this.game, this);
+}
+
 export function createShip(game) {
     const ship = {};
     initShip.call(ship, game);
@@ -455,5 +487,7 @@ export function createShip(game) {
     ship.update = update;
     ship.draw = draw;
     ship.shoot = shoot;
+    ship.takeDamage = takeDamage;
+    ship.destroy = destroy;
     return ship;
 }

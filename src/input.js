@@ -1,9 +1,9 @@
-import { checkBoundsRect } from './utils/helpers.js';
 import {
     processPointerDown,
     processPointerMove,
     processPointerUp,
 } from './schemes.js';
+import { checkBoundsRect } from './utils/helpers.js';
 
 export function createInput() {
     return {
@@ -210,8 +210,7 @@ export function handlePointerDown(event, game, callbacks) {
         isUIButtonClicked(game, game.actionBtnSize) ||
         isUIButtonClicked(game, game.pauseBtnSize) ||
         isUIButtonClicked(game, game.cargoBtnSize) ||
-        (game.state.debugMode &&
-            isUIButtonClicked(game, game.schemeBtnSize));
+        (game.state.debugMode && isUIButtonClicked(game, game.schemeBtnSize));
     processPointerDown(game, event, isOnUIButton);
 }
 

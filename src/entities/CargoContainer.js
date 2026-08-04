@@ -7,13 +7,15 @@ function initCargoContainer(game) {
     this.y = randomMinMax(80, game.world.height - 80);
     this.width = 40;
     this.height = 24;
-    this.health = 30;
-    this.maxHealth = 30;
+    this.health = 50;
+    this.maxHealth = 50;
     this.velocityX = 0;
     this.velocityY = 0;
     this.isTowed = false;
     this.discovered = false;
     this.contents = Math.random() < 0.7 ? 'salvage' : null;
+    this.damageWindowStart = 0;
+    this.damageWindowMax = 0;
     this.game = game;
 }
 
@@ -87,7 +89,14 @@ function draw() {
 }
 
 function takeDamage(amount) {
-    this.health -= amount;
+    const now = performance.now();
+    if (now - this.damageWindowStart >= 300) {
+        this.damageWindowStart = now;
+        this.damageWindowMax = 0;
+    }
+    const toApply = Math.max(0, amount - this.damageWindowMax);
+    this.health -= toApply;
+    this.damageWindowMax = Math.max(this.damageWindowMax, amount);
     if (this.health <= 0) {
         this.destroy();
     }

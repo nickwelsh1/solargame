@@ -1,5 +1,4 @@
 import { checkCircleCollision } from '../utils/physics.js';
-import { triggerGameOver } from './timer.js';
 
 /**
  * Check if a line segment (beam) collides with a circle
@@ -199,6 +198,8 @@ function checkBeamAsteroidCollisions(game) {
  * Check collisions between ship and asteroids
  */
 export function checkShipAsteroidCollisions(game) {
+    if (game.ship.dead) return;
+
     for (let i = 0; i < game.asteroids.length; i++) {
         const asteroid = game.asteroids[i];
 
@@ -212,8 +213,18 @@ export function checkShipAsteroidCollisions(game) {
                 asteroid.radius,
             )
         ) {
-            triggerGameOver(game);
-            return; // Exit immediately on game over
+            const shipSpeedX =
+                game.ship.speed * 1000 * Math.cos(game.ship.movementAngle);
+            const shipSpeedY =
+                game.ship.speed * 1000 * Math.sin(game.ship.movementAngle);
+            const relativeSpeed = Math.hypot(
+                shipSpeedX - asteroid.velocityX,
+                shipSpeedY - asteroid.velocityY,
+            );
+
+            if (relativeSpeed >= 30) {
+                game.ship.takeDamage(10);
+            }
         }
     }
 }
@@ -385,7 +396,14 @@ function checkAsteroidContainerCollisions(game) {
                     containerRadius,
                 )
             ) {
-                container.takeDamage(10);
+                const relativeSpeed = Math.hypot(
+                    container.velocityX - asteroid.velocityX,
+                    container.velocityY - asteroid.velocityY,
+                );
+
+                if (relativeSpeed >= 30) {
+                    container.takeDamage(10);
+                }
                 break;
             }
         }
