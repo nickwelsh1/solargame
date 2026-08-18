@@ -29,6 +29,8 @@ function initShip(game) {
     this.dead = false;
     this.damageWindowStart = 0;
     this.damageWindowMax = 0;
+    this.damageFlashStart = 0;
+    this.damageFlashEnd = 0;
 
     // Initialize ship's contrail
     this.contrail = {
@@ -213,7 +215,7 @@ function update(deltaTime) {
             const brakeProgress = Math.min(
                 1,
                 (currentTime - this.game.input.brakeStartTime) /
-                    (this.game.input.brakeDurationMs || 400),
+                (this.game.input.brakeDurationMs || 400),
             );
             const targetSpeed =
                 this.game.input.brakeStartSpeed *
@@ -229,7 +231,7 @@ function update(deltaTime) {
                 this.speed =
                     this.game.input.brakeStartSpeed +
                     (targetSpeed - this.game.input.brakeStartSpeed) *
-                        brakeProgress;
+                    brakeProgress;
             }
         } else {
             // Handle exponential acceleration/deceleration toward target speed
@@ -248,10 +250,10 @@ function update(deltaTime) {
                     return t === 0
                         ? 0
                         : t === 1
-                          ? 1
-                          : t < 0.5
-                            ? 2 ** (20 * t - 10) / 2
-                            : (2 - 2 ** (-20 * t + 10)) / 2;
+                            ? 1
+                            : t < 0.5
+                                ? 2 ** (20 * t - 10) / 2
+                                : (2 - 2 ** (-20 * t + 10)) / 2;
                 };
 
                 // Apply the easing function to the progress
@@ -377,6 +379,13 @@ function draw() {
     // ctx.fillStyle = 'white';
     // ctx.fill();
     this.game.ctx.translate(-8, 0);
+    const now = performance.now();
+    if (now < this.damageFlashEnd) {
+        const elapsed = now - this.damageFlashStart;
+        if (Math.floor(elapsed / 200) % 2 === 0) {
+            this.game.ctx.filter = 'brightness(1000%)';
+        }
+    }
     this.game.renderer.drawSVGImg(
         this.dead && this.game.shipBlackImg
             ? this.game.shipBlackImg
@@ -470,6 +479,10 @@ function takeDamage(amount) {
     const toApply = Math.max(0, amount - this.damageWindowMax);
     this.health -= toApply;
     this.damageWindowMax = Math.max(this.damageWindowMax, amount);
+    if (toApply > 0) {
+        this.damageFlashStart = now;
+        this.damageFlashEnd = now + 600;
+    }
     if (this.health <= 0) {
         this.destroy();
     }
