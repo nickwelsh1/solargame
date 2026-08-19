@@ -140,4 +140,5 @@ export function resetGame(game) {
     game.scrap = [];
     game.entities = [];
     game.spawner.spawnInitialAsteroids();
+    game.spawner.spawnInitialContainers();
 }
