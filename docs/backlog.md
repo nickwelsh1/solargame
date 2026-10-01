@@ -31,28 +31,37 @@ Bugs:
 
 - pointer dot should not be drawn in inner circle
 - 
-- initial start ship speed should be 0
-- restart button not centered
+done- initial start ship speed should be 0
+done- restart button not centered
 - flick direction should be more accurate again, just take 200ms to get to new set direction
   - animate transition
 - more precise control over speed
-- outer circle should be smaller to allow some room for finger outside? or just remove outer circle?
+done- outer circle should be smaller to allow some room for finger outside? or just remove outer circle?
   
 - allow twice as long for flick drag to set speed & direction
 
 
+## Idea
 - fuel system, 100 fuel, 10 fuel used per slow move, 30 fuel per fast move, 4 fuel per brake.
+  
 - LOW: planets are all the same size & color
 - zoom in & out at low speeds vs high speeds?
 
 
-- pause icon not centered in button
+## Ideas
+-shields allocated to different points.
+-world of tanks like armour system, angle of impact a
+effects penetration and heat distribution
+
+done- pause icon not centered in button
+
 - LOW:asteroid/foreground objects colours don't always standout on background
   - perhaps more fg colour consistency/harmony?
 - add thrust button (prototype:thrust vs flick movement system?)
 
 - asteroid hp (large 30hp, medium 20hp, small 10hp), asteroids take small amount of damage on collision. 
 - collision fx (sparks/dust)
+
 - LOW: button alignment going off bottom of mobile screen when screen rotated
 
 
@@ -101,6 +110,9 @@ Obstacles/forces - solar winds, shockwaves, fast asteroids, spinning turret beam
 
 Limits - fuel, ammo, health, life support? food?
 Slower speed, reduce collision dmg with asteroids?
+radiation, heat, solar winds, heliosphere, gravity, black holes, pulsars, planets, moons, asteroids, rings, space dust, ions, dark matter/anti matter, magnetic fields, solar flares, comets, cold, vacuum, debris, fluid dynamics, magnetic fields, warps, sub space, stargate, wormhole, satellite arrays, nebulae, cosmic rays, space station, science lab, orbit farms, orbital platforms, solar arrays, gasses and ice, freighters, tugs, docks, harbours, 
+
+Boses: harvester/miner robot, alien swarm, alien mothership, alien tank ship, 
 
 Entities - heavy and light objects that can be pushed and pulled around (additional properties, like heat resistant/shielding, light obscuring, absorb enemy shots, obscure enemy vision)
 Entities - configurable JSON (i.e. can have health, weight, direction, speed, isExplosive, drops[array], aggroRadius, attractTo: player, friendlyFire, patrolPath, patrolZone, attackTypes[move, shoot, missile, areaAttack], homingArc, heat, heatResistance, cold, coldResistance, hearingRadius, coolDown, evasionStrategy[avoidsClose, trysToGetClose], solarPowered, energy)
@@ -159,3 +171,72 @@ Controls - game: slowmo, interact
 
 
 NOTES - SCAMPER: indie game clinic , secrets, environmental storytelling
+
+
+Goals:
+- survive as long as possible
+- collect as much as possible
+- complete objectives
+
+Tactics:
+- shoot weakpoints
+- push something heavy into enemy
+- right weapon for job
+- provoke enemy C against enemy D
+
+Player Decisions:
+- which path to take
+- which objective to complete
+- which weapon to use
+- which enemy to target
+- which item to pick up
+- which item to use
+
+To limit scope, we can add constraints:
+- only small map
+- only simple objectives
+- only simple weapons
+- only simple enemies
+
+Double diamond design methodology:
+- understand the problem
+- define the problem
+- generate solutions
+- evaluate solutions
+
+Flow state:
+- clear goals
+- immediate feedback
+- challenge-skill balance
+- focused attention
+- loss of self-consciousness
+- sense of control
+- altered sense of time
+- intrinsic motivation
+
+SMACS:
+- Simple - easy to understand, easy to play
+- Modular - easy to extend, easy to maintain
+- Adaptable - easy to adapt to different platforms
+- Composable - easy to compose into larger systems
+- Scalable - easy to scale to larger audiences
+
+GAMES
+What's in the Games?
+
+What makes a game fun? How does the player feel?
+8 ways players can have fun: 1,2,3,4,5,6, Sensation, Challenge, Narative, Fellowship, Fantasy, Discovery, Expression, Submission (unwind)
+- Syndicate - fast paced (movement, shooting), tactical (positioning, cover), strategic (resource management, planning)
+- Sonic - fast paced (movement, jumping), tactical (timing, precision), strategic (level design, power-ups)
+- Mario - fast paced (movement, jumping), tactical (timing, precision), strategic (level design, power-ups)
+- Celeste - fast paced (movement, jumping), tactical (timing, precision), strategic (level design, power-ups)
+- Papers Please - slow paced (movement, reading), tactical (decision making, resource management), strategic (moral choices, planning)
+- Nethack - slow paced (movement, exploration), tactical (resource management, positioning), strategic (level design, planning)
+- Stygian Abyss - slow paced (movement, exploration), tactical (resource management, positioning), strategic (level design, planning)
+
+Books:
+Game Feel
+The Art of Game Design
+Theory of Play?
+Indie Game Clinic (YouTube)
+
