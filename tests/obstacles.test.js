@@ -4,9 +4,11 @@ import { createFreighter } from '../src/entities/Freighter.js';
 import { createMine } from '../src/entities/Mine.js';
 import { createResearchStation } from '../src/entities/ResearchStation.js';
 import { createSatellite } from '../src/entities/Satellite.js';
+import { createScrap } from '../src/entities/Scrap.js';
 import { createTugShip } from '../src/entities/TugShip.js';
 import { createWarpGate } from '../src/entities/WarpGate.js';
 import { createState } from '../src/state.js';
+import { handleCollisions } from '../src/systems/collisions.js';
 
 function createMockGame() {
     return {
@@ -40,6 +42,7 @@ function createMockGame() {
             y: 500,
             radius: 20,
             speed: 0.1,
+            maxSpeed: 0.2,
             angle: 0,
             movementAngle: 0,
             health: 50,
@@ -59,6 +62,8 @@ function createMockGame() {
         warpGates: [],
         researchStation: null,
         mines: [],
+        planets: [],
+        explosions: [],
         asteroids: [],
         projectiles: [],
         beams: [],
@@ -99,6 +104,54 @@ describe('Satellites', () => {
         expect(game.satellites).not.toContain(sat);
         expect(game.scrap.length).toBeGreaterThan(0);
     });
+
+    it('collisions push player, tugs, small asteroids, and empty freighters with reduced damage', () => {
+        const game = createMockGame();
+        const sat = createSatellite(game, null, 0, 0, 0);
+        sat.x = 500;
+        sat.y = 500;
+        sat.radius = 20;
+        game.satellites.push(sat);
+
+        // 1. Ship collision: reduced damage (3 instead of 10)
+        game.ship.x = 515;
+        game.ship.y = 500;
+        game.ship.speed = 0.05; // 50 px/s
+        handleCollisions(game);
+        expect(game.ship.health).toBe(47); // 50 - 3 = 47
+        expect(game.ship.x).toBeGreaterThan(515); // pushed out
+
+        // 2. Small asteroid collision: gets strong repulsive push
+        const smallAst = {
+            x: 520,
+            y: 500,
+            radius: 20,
+            velocityX: -10,
+            velocityY: 0,
+            mass: 500,
+        };
+        game.asteroids.push(smallAst);
+        handleCollisions(game);
+        expect(smallAst.velocityX).toBeGreaterThan(40); // launched away
+
+        // 3. Tug collision: pushed away and repair interrupted
+        const freighter = createFreighter(game, 800, 800, 0, 0);
+        const tug = createTugShip(game, freighter);
+        tug.x = 515;
+        tug.y = 500;
+        tug.repairTimer = 5000;
+        game.tugs.push(tug);
+        handleCollisions(game);
+        expect(tug.x).toBeGreaterThan(530); // pushed away
+        expect(tug.repairTimer).toBe(0); // repair interrupted
+
+        // 4. Empty freighter collision: pushed away
+        freighter.x = 550;
+        freighter.y = 500;
+        game.freighters.push(freighter);
+        handleCollisions(game);
+        expect(freighter.x).toBeGreaterThan(550); // empty freighter deflected
+    });
 });
 
 describe('Freighter', () => {
@@ -125,6 +178,30 @@ describe('Freighter', () => {
         freighterFull.repairRocket(0);
         expect(freighterFull.rockets[0].damaged).toBe(false);
         expect(freighterFull.calculateSpeed()).toBeCloseTo(speed4Rockets);
+    });
+
+    it('shooting a full freighter dislodges a container after 3 hits', () => {
+        const game = createMockGame();
+        const freighter = createFreighter(game, 500, 500, 0, 5);
+        game.freighters.push(freighter);
+
+        expect(freighter.containers.length).toBe(5);
+
+        // Hit 1
+        const drop1 = freighter.onShotHit(0);
+        expect(drop1).toBeNull();
+        expect(freighter.containers.length).toBe(5);
+
+        // Hit 2
+        const drop2 = freighter.onShotHit(0);
+        expect(drop2).toBeNull();
+        expect(freighter.containers.length).toBe(5);
+
+        // Hit 3 -> Dislodges container!
+        const drop3 = freighter.onShotHit(0);
+        expect(drop3).not.toBeNull();
+        expect(freighter.containers.length).toBe(4);
+        expect(game.containers).toContain(drop3);
     });
 
     it('drops containers on force bump with chance proportional to cargo count', () => {
@@ -311,41 +388,94 @@ describe('Research Station', () => {
 });
 
 describe('Mines', () => {
-    it('pursues ship within 60 px and returns to origin when outside 60 px', () => {
+    it('pursues target within 180 px and returns to origin when outside 180 px', () => {
         const game = createMockGame();
         const mine = createMine(game, 500, 500);
 
-        // Ship outside 60 px (dist = 100)
-        game.ship.x = 600;
+        // Ship outside 180 px (dist = 220)
+        game.ship.x = 720;
         game.ship.y = 500;
         mine.update(100);
         expect(mine.state).toBe('IDLE');
 
-        // Ship enters 60 px range (dist = 40)
-        game.ship.x = 540;
+        // Ship enters 180 px range (dist = 140)
+        game.ship.x = 640;
         game.ship.y = 500;
         mine.update(100);
         expect(mine.state).toBe('PURSUING');
         expect(mine.velocityX).toBeGreaterThan(0);
 
-        // Ship moves away outside 60 px (dist = 200)
-        game.ship.x = 700;
+        // Ship moves away outside 180 px (dist = 300)
+        game.ship.x = 800;
         mine.update(100);
         expect(mine.state).toBe('RETURNING');
     });
 
-    it('explodes on contact with ship doing 30 damage and spawns debris', () => {
+    it('attracted to freighters, tug ships, and satellites within 180 px', () => {
+        const game = createMockGame();
+        game.ship.dead = true; // disable ship
+
+        const mine = createMine(game, 500, 500);
+
+        // Freighter within 150 px
+        const freighter = createFreighter(game, 620, 500, 0, 2);
+        game.freighters.push(freighter);
+        mine.update(100);
+        expect(mine.state).toBe('PURSUING');
+        expect(mine.velocityX).toBeGreaterThan(0);
+
+        // Tug within range
+        game.freighters = [];
+        const tug = createTugShip(game, freighter);
+        tug.x = 420;
+        tug.y = 500;
+        game.tugs.push(tug);
+        mine.update(100);
+        expect(mine.state).toBe('PURSUING');
+
+        // Satellite within range
+        game.tugs = [];
+        const sat = createSatellite(game, null, 0, 0, 0);
+        sat.x = 500;
+        sat.y = 620;
+        game.satellites.push(sat);
+        mine.update(100);
+        expect(mine.state).toBe('PURSUING');
+    });
+
+    it('creates explosion with AOE damage and shockwave knocking scrap when detonated or shot', () => {
         const game = createMockGame();
         const mine = createMine(game, 500, 500);
         game.mines.push(mine);
-        game.entities.push(mine);
 
-        const initialHealth = game.ship.health;
-        mine.explode(game.ship);
+        // Place a tug and scrap nearby
+        const freighter = createFreighter(game, 800, 800, 0, 0);
+        const tug = createTugShip(game, freighter);
+        tug.x = 540;
+        tug.y = 500;
+        game.tugs.push(tug);
 
-        expect(game.ship.health).toBe(initialHealth - 30);
+        const scrap = createScrap(game, 520, 500, null);
+        game.scrap.push(scrap);
+
+        game.ship.x = 550;
+        game.ship.y = 500;
+
+        // Shoot mine with projectile
+        const proj = { x: 500, y: 500, radius: 5, angle: 0 };
+        game.projectiles.push(proj);
+
+        handleCollisions(game);
+
+        expect(mine.destroyed).toBe(true);
         expect(game.mines).not.toContain(mine);
-        expect(game.scrap.length).toBeGreaterThan(0);
+        // Visual explosion spawned
+        expect(game.explosions.length).toBeGreaterThan(0);
+        // AOE damage applied to ship and tug
+        expect(game.ship.health).toBeLessThan(50);
+        expect(tug.health).toBeLessThan(100);
+        // Scrap knocked away by shockwave
+        expect(scrap.velocityX).toBeGreaterThan(50);
     });
 
     it('bounces off asteroids or planets without exploding', () => {
@@ -359,5 +489,51 @@ describe('Mines', () => {
         expect(mine.destroyed).toBe(false);
         // Velocity along normal was reflected
         expect(mine.velocityX).toBeLessThan(0);
+    });
+});
+
+describe('Scrap Debris', () => {
+    it('is knocked about by collisions with ship, asteroids, and projectiles', () => {
+        const game = createMockGame();
+        const scrap = createScrap(game, 500, 500, null);
+        scrap.velocityX = 0;
+        scrap.velocityY = 0;
+        game.scrap.push(scrap);
+
+        // 1. Ship knocks scrap
+        game.ship.x = 490;
+        game.ship.y = 500;
+        game.ship.speed = 0.1; // 100 px/s
+        game.ship.movementAngle = 0;
+        handleCollisions(game);
+        expect(scrap.velocityX).toBeGreaterThan(50);
+
+        // 2. Asteroid knocks scrap
+        scrap.velocityX = 0;
+        scrap.velocityY = 0;
+        scrap.x = 500;
+        scrap.y = 500;
+        const ast = {
+            x: 480,
+            y: 500,
+            radius: 25,
+            velocityX: 40,
+            velocityY: 0,
+        };
+        game.asteroids.push(ast);
+        handleCollisions(game);
+        expect(scrap.velocityX).toBeGreaterThan(40);
+
+        // 3. Projectile knocks scrap
+        scrap.velocityX = 0;
+        scrap.velocityY = 0;
+        scrap.x = 500;
+        scrap.y = 500;
+        game.asteroids = [];
+        const proj = { x: 500, y: 500, radius: 4, angle: 0 };
+        game.projectiles.push(proj);
+        handleCollisions(game);
+        expect(scrap.velocityX).toBeGreaterThan(100);
+        expect(game.projectiles).not.toContain(proj);
     });
 });

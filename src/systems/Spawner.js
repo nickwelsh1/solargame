@@ -213,6 +213,7 @@ export function initGame(game) {
     game.freighters = [];
     game.tugs = [];
     game.mines = [];
+    game.explosions = [];
     game.entities = [];
     game.shipExplosion = null;
 

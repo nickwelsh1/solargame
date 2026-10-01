@@ -22,6 +22,7 @@ function initFreighter(game, x, y, angle = 0, initialContainers = 4) {
     for (let i = 0; i < count; i++) {
         this.containers.push({ id: i });
     }
+    this.shotHits = 0;
 
     // 4 Rockets at the rear
     this.rockets = [
@@ -126,6 +127,36 @@ function update(deltaTime) {
     this.y = Math.max(80, Math.min(this.game.world.height - 80, this.y));
 }
 
+function dislodgeContainer(ejectAngle) {
+    if (this.containers.length === 0) return null;
+
+    this.containers.pop();
+    const count = this.containers.length;
+    const slotIdx = Math.min(count, this.slotOffsets.length - 1);
+    const slotX = this.slotOffsets[slotIdx];
+    const cos = Math.cos(this.angle);
+    const sin = Math.sin(this.angle);
+    const spawnX = this.x + slotX * cos;
+    const spawnY = this.y + slotX * sin;
+
+    const newContainer = createCargoContainer(this.game);
+    newContainer.x = spawnX;
+    newContainer.y = spawnY;
+    const angle =
+        ejectAngle !== undefined
+            ? ejectAngle
+            : this.angle + (Math.random() < 0.5 ? 1.5 : -1.5);
+    newContainer.velocityX = Math.cos(angle) * 60;
+    newContainer.velocityY = Math.sin(angle) * 60;
+    newContainer.discovered = true;
+
+    this.game.containers.push(newContainer);
+    this.game.entities.push(newContainer);
+
+    this.speed = this.calculateSpeed();
+    return newContainer;
+}
+
 function onBump(impactSpeed, bumpAngle) {
     // If bumped into with enough force there's a chance a container can fall off.
     // The more containers they are carrying the higher chance that one could be knocked free.
@@ -137,33 +168,24 @@ function onBump(impactSpeed, bumpAngle) {
     const dropChance = (count / 5) * 0.65 + 0.2;
 
     if (Math.random() < dropChance) {
-        // Drop the last container
-        this.containers.pop();
+        return this.dislodgeContainer(bumpAngle);
+    }
 
-        // Calculate slot world position
-        const slotIdx = Math.min(count - 1, this.slotOffsets.length - 1);
-        const slotX = this.slotOffsets[slotIdx];
-        const cos = Math.cos(this.angle);
-        const sin = Math.sin(this.angle);
-        const spawnX = this.x + slotX * cos;
-        const spawnY = this.y + slotX * sin;
+    return null;
+}
 
-        // Spawn actual CargoContainer in world
-        const newContainer = createCargoContainer(this.game);
-        newContainer.x = spawnX;
-        newContainer.y = spawnY;
-        const ejectAngle =
-            bumpAngle !== undefined
-                ? bumpAngle
-                : this.angle + (Math.random() < 0.5 ? 1.5 : -1.5);
-        newContainer.velocityX = Math.cos(ejectAngle) * 55;
-        newContainer.velocityY = Math.sin(ejectAngle) * 55;
-        newContainer.discovered = true;
+function onShotHit(shotAngle) {
+    // Shooting a freighter should increase the chances of it dislodging a cargo container.
+    // If a freighter is full as little as 3 hits should be enough to dislodge a container.
+    if (this.containers.length === 0) return null;
 
-        this.game.containers.push(newContainer);
-        this.game.entities.push(newContainer);
+    this.shotHits = (this.shotHits || 0) + 1;
+    // When full (5 containers), threshold is 3 hits. When less full, requires more hits.
+    const threshold = Math.max(3, 8 - this.containers.length);
 
-        return newContainer;
+    if (this.shotHits >= threshold) {
+        this.shotHits = 0;
+        return this.dislodgeContainer(shotAngle);
     }
 
     return null;
@@ -333,6 +355,8 @@ export function createFreighter(game, x, y, angle, initialContainers) {
     freighter.update = update;
     freighter.draw = draw;
     freighter.onBump = onBump;
+    freighter.onShotHit = onShotHit;
+    freighter.dislodgeContainer = dislodgeContainer;
     freighter.damageRocket = damageRocket;
     freighter.repairRocket = repairRocket;
     freighter.attachContainer = attachContainer;

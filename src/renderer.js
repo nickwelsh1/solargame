@@ -573,6 +573,9 @@ export function createRenderer() {
             game.ship.draw();
 
             game.shipExplosion?.draw();
+            game.explosions?.forEach((e) => {
+                e.draw();
+            });
 
             game.asteroids.forEach((asteroid) => {
                 asteroid.draw();

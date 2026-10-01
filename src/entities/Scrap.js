@@ -8,9 +8,20 @@ function initScrap(game, x, y, contents) {
     this.contents = contents;
     this.width = contents ? 10 : 5;
     this.height = contents ? 7 : 4;
+    this.radius = contents ? 6 : 4;
     this.velocityX = randomMinMax(-40, 40);
     this.velocityY = randomMinMax(-40, 40);
     this.lifespan = contents ? 30000 : 5000;
+}
+
+function applyImpulse(ix, iy) {
+    this.velocityX += ix;
+    this.velocityY += iy;
+    const speed = Math.hypot(this.velocityX, this.velocityY);
+    if (speed > 400) {
+        this.velocityX = (this.velocityX / speed) * 400;
+        this.velocityY = (this.velocityY / speed) * 400;
+    }
 }
 
 function update(deltaTime) {
@@ -42,5 +53,6 @@ export function createScrap(game, x, y, contents) {
     initScrap.call(scrap, game, x, y, contents);
     scrap.update = update;
     scrap.draw = draw;
+    scrap.applyImpulse = applyImpulse;
     return scrap;
 }

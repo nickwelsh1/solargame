@@ -39,6 +39,7 @@ function initGameObject(game) {
     game.warpGates = [];
     game.researchStation = null;
     game.mines = [];
+    game.explosions = [];
     game.dialogue = null;
     game.beams = [];
     game.containers = [];
@@ -293,6 +294,13 @@ function loop(game, timestamp) {
         }
 
         handleCollisions(game);
+
+        for (let i = game.explosions.length - 1; i >= 0; i--) {
+            const done = game.explosions[i].update(deltaTime);
+            if (done) {
+                game.explosions.splice(i, 1);
+            }
+        }
 
         if (game.shipExplosion) {
             const done = game.shipExplosion.update(deltaTime);

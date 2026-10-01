@@ -1,3 +1,4 @@
+import { createExplosion } from './Explosion.js';
 import { createScrap } from './Scrap.js';
 
 function initMine(game, x, y) {
@@ -8,7 +9,7 @@ function initMine(game, x, y) {
     this.x = x;
     this.y = y;
     this.radius = 12;
-    this.triggerRadius = 60;
+    this.triggerRadius = 180;
     this.velocityX = 0;
     this.velocityY = 0;
     this.maxSpeed = 45;
@@ -19,20 +20,60 @@ function initMine(game, x, y) {
     this.destroyed = false;
 }
 
+function findNearestTarget() {
+    let closest = null;
+    let minDist = this.triggerRadius;
+
+    // 1. Player ship
+    const ship = this.game.ship;
+    if (ship && !ship.dead) {
+        const d = Math.hypot(ship.x - this.x, ship.y - this.y);
+        if (d < minDist) {
+            minDist = d;
+            closest = ship;
+        }
+    }
+
+    // 2. Freighters
+    this.game.freighters?.forEach((f) => {
+        const d = Math.hypot(f.x - this.x, f.y - this.y);
+        if (d < minDist) {
+            minDist = d;
+            closest = f;
+        }
+    });
+
+    // 3. Tugs
+    this.game.tugs?.forEach((t) => {
+        const d = Math.hypot(t.x - this.x, t.y - this.y);
+        if (d < minDist) {
+            minDist = d;
+            closest = t;
+        }
+    });
+
+    // 4. Satellites
+    this.game.satellites?.forEach((sat) => {
+        const d = Math.hypot(sat.x - this.x, sat.y - this.y);
+        if (d < minDist) {
+            minDist = d;
+            closest = sat;
+        }
+    });
+
+    return closest;
+}
+
 function update(deltaTime) {
     if (this.destroyed) return;
     this.blinkTimer += deltaTime;
 
-    const ship = this.game.ship;
-    let distToShip = Infinity;
-    if (ship && !ship.dead) {
-        distToShip = Math.hypot(ship.x - this.x, ship.y - this.y);
-    }
+    const target = findNearestTarget.call(this);
 
-    if (distToShip <= this.triggerRadius) {
-        // Pursuing player ship
+    if (target) {
+        // Pursuing target
         this.state = 'PURSUING';
-        const angle = Math.atan2(ship.y - this.y, ship.x - this.x);
+        const angle = Math.atan2(target.y - this.y, target.x - this.x);
         const targetVx = Math.cos(angle) * this.maxSpeed;
         const targetVy = Math.sin(angle) * this.maxSpeed;
 
@@ -40,7 +81,7 @@ function update(deltaTime) {
         this.velocityX += (targetVx - this.velocityX) * steerRate;
         this.velocityY += (targetVy - this.velocityY) * steerRate;
     } else {
-        // Player moved further than 60 px: slow down, then fly back to origin
+        // Target moved further than 180 px: slow down, then fly back to origin
         const distToOrigin = Math.hypot(
             this.originX - this.x,
             this.originY - this.y,
@@ -84,13 +125,94 @@ function explode(damagedShip = null) {
     if (this.destroyed) return;
     this.destroyed = true;
 
-    if (damagedShip && !damagedShip.dead) {
-        damagedShip.takeDamage(30);
+    // Visual fireball explosion
+    if (this.game.explosions) {
+        this.game.explosions.push(
+            createExplosion(this.game, this.x, this.y, 80, 500),
+        );
     }
 
-    // Creates debris fragments
-    for (let i = 0; i < 3; i++) {
-        this.game.scrap.push(createScrap(this.game, this.x, this.y, null));
+    const blastRadius = 80;
+
+    // AOE damage to player ship
+    const ship = this.game.ship;
+    if (ship && !ship.dead) {
+        const d = Math.hypot(ship.x - this.x, ship.y - this.y);
+        if (d <= blastRadius || damagedShip === ship) {
+            const damage = Math.round(30 * (1 - (d / blastRadius) * 0.4));
+            ship.takeDamage(damage);
+        }
+    }
+
+    // AOE damage to tugs
+    this.game.tugs?.forEach((tug) => {
+        const d = Math.hypot(tug.x - this.x, tug.y - this.y);
+        if (d <= blastRadius || damagedShip === tug) {
+            tug.takeDamage(30);
+        }
+    });
+
+    // AOE damage to satellites
+    this.game.satellites?.forEach((sat) => {
+        const d = Math.hypot(sat.x - this.x, sat.y - this.y);
+        if (d <= blastRadius || damagedShip === sat) {
+            sat.takeDamage(25);
+        }
+    });
+
+    // AOE damage / force to freighters
+    this.game.freighters?.forEach((freighter) => {
+        const d = Math.hypot(freighter.x - this.x, freighter.y - this.y);
+        if (d <= blastRadius + freighter.radius || damagedShip === freighter) {
+            // Damage closest rocket if near rear
+            freighter.rockets.forEach((r) => {
+                const rPos = freighter.getRocketWorldPos(r);
+                if (
+                    Math.hypot(rPos.x - this.x, rPos.y - this.y) <= blastRadius
+                ) {
+                    freighter.damageRocket(r.id, 20);
+                }
+            });
+            // Also contribute to cargo dislodgement
+            freighter.onBump(
+                55,
+                Math.atan2(freighter.y - this.y, freighter.x - this.x),
+            );
+        }
+    });
+
+    // Kinetic shockwave: knocks nearby scrap debris away
+    this.game.scrap?.forEach((s) => {
+        const dx = s.x - this.x;
+        const dy = s.y - this.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 0 && d <= 120) {
+            const force = (1 - d / 120) * 220;
+            s.velocityX += (dx / d) * force;
+            s.velocityY += (dy / d) * force;
+        }
+    });
+
+    // Kinetic shockwave: knocks smaller asteroids
+    this.game.asteroids?.forEach((a) => {
+        const dx = a.x - this.x;
+        const dy = a.y - this.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 0 && d <= 100) {
+            const force = (1 - d / 100) * 60;
+            a.velocityX += (dx / d) * force;
+            a.velocityY += (dy / d) * force;
+        }
+    });
+
+    // Creates debris fragments with outward blast velocity
+    for (let i = 0; i < 4; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const scrap = createScrap(this.game, this.x, this.y, null);
+        const speed = Math.random() * 80 + 40;
+        scrap.velocityX = Math.cos(angle) * speed;
+        scrap.velocityY = Math.sin(angle) * speed;
+        this.game.scrap.push(scrap);
     }
 
     const midx = this.game.mines.indexOf(this);
@@ -195,5 +317,6 @@ export function createMine(game, x, y) {
     mine.explode = explode;
     mine.takeDamage = takeDamage;
     mine.bounceOff = bounceOff;
+    mine.findNearestTarget = findNearestTarget;
     return mine;
 }

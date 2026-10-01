@@ -416,7 +416,7 @@ function checkSatelliteCollisions(game) {
     for (let sIdx = 0; sIdx < game.satellites.length; sIdx++) {
         const sat = game.satellites[sIdx];
 
-        // 1. Ship vs Satellite (bounce)
+        // 1. Ship vs Satellite (bounce with strong repulsive force, reduced damage)
         if (game.ship && !game.ship.dead) {
             if (
                 checkCircleCollision(
@@ -434,14 +434,14 @@ function checkSatelliteCollisions(game) {
                 const nx = dx / dist;
                 const ny = dy / dist;
 
-                // Push ship out of overlap
+                // Push ship out of overlap with extra repulsive margin
                 const overlap = game.ship.radius + sat.radius - dist;
                 if (overlap > 0) {
-                    game.ship.x += nx * overlap;
-                    game.ship.y += ny * overlap;
+                    game.ship.x += nx * (overlap + 6);
+                    game.ship.y += ny * (overlap + 6);
                 }
 
-                // Bounce ship velocity / direction
+                // Strong repulsive bounce
                 const shipSpeed = game.ship.speed;
                 const shipAngle = game.ship.movementAngle;
                 const vx = Math.cos(shipAngle) * shipSpeed;
@@ -449,19 +449,24 @@ function checkSatelliteCollisions(game) {
                 const dot = vx * nx + vy * ny;
 
                 if (dot < 0) {
-                    const rvx = vx - 1.8 * dot * nx;
-                    const rvy = vy - 1.8 * dot * ny;
+                    const rvx = vx - 2.5 * dot * nx + nx * 0.08;
+                    const rvy = vy - 2.5 * dot * ny + ny * 0.08;
                     game.ship.movementAngle = Math.atan2(rvy, rvx);
                     game.ship.angle = game.ship.movementAngle;
+                    game.ship.speed = Math.min(
+                        game.ship.maxSpeed,
+                        Math.hypot(rvx, rvy),
+                    );
                 }
 
-                if (shipSpeed * 1000 >= 30) {
-                    game.ship.takeDamage(10);
+                // Reduced collision damage to player
+                if (shipSpeed * 1000 >= 35) {
+                    game.ship.takeDamage(3);
                 }
             }
         }
 
-        // 2. Asteroids vs Satellite (bounce)
+        // 2. Asteroids vs Satellite (bounce; smaller asteroids pushed away with force)
         for (let aIdx = 0; aIdx < game.asteroids.length; aIdx++) {
             const ast = game.asteroids[aIdx];
             if (
@@ -482,19 +487,75 @@ function checkSatelliteCollisions(game) {
 
                 const overlap = ast.radius + sat.radius - dist;
                 if (overlap > 0) {
-                    ast.x += nx * overlap;
-                    ast.y += ny * overlap;
+                    ast.x += nx * (overlap + 4);
+                    ast.y += ny * (overlap + 4);
                 }
 
                 const dot = ast.velocityX * nx + ast.velocityY * ny;
                 if (dot < 0) {
-                    ast.velocityX -= 1.8 * dot * nx;
-                    ast.velocityY -= 1.8 * dot * ny;
+                    // Smaller asteroids pushed away with extra force
+                    const bounceFactor = ast.radius < 35 ? 2.5 : 1.8;
+                    const pushExtra = ast.radius < 35 ? 65 : 0;
+                    ast.velocityX += -bounceFactor * dot * nx + nx * pushExtra;
+                    ast.velocityY += -bounceFactor * dot * ny + ny * pushExtra;
                 }
             }
         }
 
-        // 3. Projectiles vs Satellite
+        // 3. Tugs vs Satellite (pushed away with force)
+        for (let tIdx = 0; tIdx < game.tugs.length; tIdx++) {
+            const tug = game.tugs[tIdx];
+            if (
+                checkCircleCollision(
+                    tug.x,
+                    tug.y,
+                    tug.radius,
+                    sat.x,
+                    sat.y,
+                    sat.radius,
+                )
+            ) {
+                const dx = tug.x - sat.x;
+                const dy = tug.y - sat.y;
+                const dist = Math.hypot(dx, dy) || 1;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                tug.x += nx * 45;
+                tug.y += ny * 45;
+                tug.onBump();
+            }
+        }
+
+        // 4. Freighters vs Satellite (empty/light freighters pushed away with force)
+        for (let fIdx = 0; fIdx < game.freighters.length; fIdx++) {
+            const freighter = game.freighters[fIdx];
+            if (
+                checkCircleCollision(
+                    freighter.x,
+                    freighter.y,
+                    freighter.radius,
+                    sat.x,
+                    sat.y,
+                    sat.radius,
+                )
+            ) {
+                const dx = freighter.x - sat.x;
+                const dy = freighter.y - sat.y;
+                const dist = Math.hypot(dx, dy) || 1;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                // Empty or light freighters get pushed away with more force
+                const pushForce = Math.max(
+                    15,
+                    (5 - freighter.containers.length) * 12,
+                );
+                freighter.x += nx * pushForce;
+                freighter.y += ny * pushForce;
+                freighter.onBump(30, Math.atan2(dy, dx));
+            }
+        }
+
+        // 5. Projectiles vs Satellite (less damaging to satellite)
         for (let pIdx = game.projectiles.length - 1; pIdx >= 0; pIdx--) {
             const proj = game.projectiles[pIdx];
             if (
@@ -507,16 +568,16 @@ function checkSatelliteCollisions(game) {
                     sat.radius,
                 )
             ) {
-                sat.takeDamage(15);
+                sat.takeDamage(6);
                 removeProjectile(game, proj);
             }
         }
 
-        // 4. Beams vs Satellite
+        // 6. Beams vs Satellite
         for (let bIdx = 0; bIdx < game.beams.length; bIdx++) {
             const beam = game.beams[bIdx];
             if (checkLineCircleCollision(beam, sat.x, sat.y, sat.radius)) {
-                sat.takeDamage(25);
+                sat.takeDamage(10);
             }
         }
     }
@@ -626,6 +687,7 @@ function checkFreighterCollisions(game) {
                     )
                 ) {
                     freighter.damageRocket(rocket.id, 15);
+                    freighter.onShotHit(proj.angle);
                     removeProjectile(game, proj);
                 }
             }
@@ -642,6 +704,7 @@ function checkFreighterCollisions(game) {
                     )
                 ) {
                     freighter.damageRocket(rocket.id, 20);
+                    freighter.onShotHit(beam.angle);
                 }
             }
         }
@@ -659,7 +722,23 @@ function checkFreighterCollisions(game) {
                     freighter.radius,
                 )
             ) {
+                freighter.onShotHit(proj.angle);
                 removeProjectile(game, proj);
+            }
+        }
+
+        // Beams vs Main Hull
+        for (let bIdx = 0; bIdx < game.beams.length; bIdx++) {
+            const beam = game.beams[bIdx];
+            if (
+                checkLineCircleCollision(
+                    beam,
+                    freighter.x,
+                    freighter.y,
+                    freighter.radius,
+                )
+            ) {
+                freighter.onShotHit(beam.angle);
             }
         }
     }
@@ -794,7 +873,72 @@ function checkMineCollisions(game) {
             }
         }
 
-        // 2. Mine vs Asteroids: won't explode if collision with asteroids or planets
+        // 2. Mine vs Freighters: explodes on contact
+        for (
+            let fIdx = 0;
+            fIdx < (game.freighters ? game.freighters.length : 0);
+            fIdx++
+        ) {
+            const freighter = game.freighters[fIdx];
+            if (
+                checkCircleCollision(
+                    freighter.x,
+                    freighter.y,
+                    freighter.radius,
+                    mine.x,
+                    mine.y,
+                    mine.radius,
+                )
+            ) {
+                mine.explode(freighter);
+                break;
+            }
+        }
+        if (mine.destroyed) continue;
+
+        // 3. Mine vs Tugs: explodes on contact
+        for (let tIdx = 0; tIdx < (game.tugs ? game.tugs.length : 0); tIdx++) {
+            const tug = game.tugs[tIdx];
+            if (
+                checkCircleCollision(
+                    tug.x,
+                    tug.y,
+                    tug.radius,
+                    mine.x,
+                    mine.y,
+                    mine.radius,
+                )
+            ) {
+                mine.explode(tug);
+                break;
+            }
+        }
+        if (mine.destroyed) continue;
+
+        // 4. Mine vs Satellites: explodes on contact
+        for (
+            let sIdx = 0;
+            sIdx < (game.satellites ? game.satellites.length : 0);
+            sIdx++
+        ) {
+            const sat = game.satellites[sIdx];
+            if (
+                checkCircleCollision(
+                    sat.x,
+                    sat.y,
+                    sat.radius,
+                    mine.x,
+                    mine.y,
+                    mine.radius,
+                )
+            ) {
+                mine.explode(sat);
+                break;
+            }
+        }
+        if (mine.destroyed) continue;
+
+        // 5. Mine vs Asteroids: won't explode if collision with asteroids or planets
         for (let aIdx = 0; aIdx < game.asteroids.length; aIdx++) {
             const ast = game.asteroids[aIdx];
             if (
@@ -811,7 +955,7 @@ function checkMineCollisions(game) {
             }
         }
 
-        // 3. Mine vs Planets: won't explode if collision with asteroids or planets
+        // 6. Mine vs Planets: won't explode if collision with asteroids or planets
         for (let plIdx = 0; plIdx < game.planets.length; plIdx++) {
             const planet = game.planets[plIdx];
             if (
@@ -828,7 +972,7 @@ function checkMineCollisions(game) {
             }
         }
 
-        // 4. Projectiles vs Mine: explodes safely from range
+        // 7. Projectiles vs Mine: explodes with fireball & AOE shockwave
         for (let pIdx = game.projectiles.length - 1; pIdx >= 0; pIdx--) {
             const proj = game.projectiles[pIdx];
             if (
@@ -847,7 +991,7 @@ function checkMineCollisions(game) {
             }
         }
 
-        // 5. Beams vs Mine
+        // 8. Beams vs Mine: explodes with fireball & AOE shockwave
         if (!mine.destroyed) {
             for (let bIdx = 0; bIdx < game.beams.length; bIdx++) {
                 const beam = game.beams[bIdx];
@@ -857,6 +1001,183 @@ function checkMineCollisions(game) {
                     mine.explode(null);
                     break;
                 }
+            }
+        }
+    }
+}
+
+function checkScrapCollisions(game) {
+    if (!game.scrap || game.scrap.length === 0) return;
+
+    for (let i = 0; i < game.scrap.length; i++) {
+        const scrap = game.scrap[i];
+        const sRadius = scrap.radius || 5;
+
+        // 1. Scrap vs Ship
+        if (game.ship && !game.ship.dead) {
+            if (
+                checkCircleCollision(
+                    game.ship.x,
+                    game.ship.y,
+                    game.ship.radius,
+                    scrap.x,
+                    scrap.y,
+                    sRadius,
+                )
+            ) {
+                const dx = scrap.x - game.ship.x;
+                const dy = scrap.y - game.ship.y;
+                const dist = Math.hypot(dx, dy) || 1;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                const shipSpeed = game.ship.speed * 1000;
+                scrap.applyImpulse(
+                    Math.cos(game.ship.movementAngle) * shipSpeed * 0.9 +
+                        nx * 70,
+                    Math.sin(game.ship.movementAngle) * shipSpeed * 0.9 +
+                        ny * 70,
+                );
+                scrap.x += nx * 4;
+                scrap.y += ny * 4;
+            }
+        }
+
+        // 2. Scrap vs Asteroids
+        for (let aIdx = 0; aIdx < game.asteroids.length; aIdx++) {
+            const ast = game.asteroids[aIdx];
+            if (
+                checkCircleCollision(
+                    ast.x,
+                    ast.y,
+                    ast.radius,
+                    scrap.x,
+                    scrap.y,
+                    sRadius,
+                )
+            ) {
+                const dx = scrap.x - ast.x;
+                const dy = scrap.y - ast.y;
+                const dist = Math.hypot(dx, dy) || 1;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                scrap.applyImpulse(
+                    ast.velocityX * 1.3 + nx * 80,
+                    ast.velocityY * 1.3 + ny * 80,
+                );
+                scrap.x += nx * 5;
+                scrap.y += ny * 5;
+            }
+        }
+
+        // 3. Scrap vs Satellites
+        for (
+            let sIdx = 0;
+            sIdx < (game.satellites ? game.satellites.length : 0);
+            sIdx++
+        ) {
+            const sat = game.satellites[sIdx];
+            if (
+                checkCircleCollision(
+                    sat.x,
+                    sat.y,
+                    sat.radius,
+                    scrap.x,
+                    scrap.y,
+                    sRadius,
+                )
+            ) {
+                const dx = scrap.x - sat.x;
+                const dy = scrap.y - sat.y;
+                const dist = Math.hypot(dx, dy) || 1;
+                scrap.applyImpulse((dx / dist) * 150, (dy / dist) * 150);
+                scrap.x += (dx / dist) * 6;
+                scrap.y += (dy / dist) * 6;
+            }
+        }
+
+        // 4. Scrap vs Freighters
+        for (
+            let fIdx = 0;
+            fIdx < (game.freighters ? game.freighters.length : 0);
+            fIdx++
+        ) {
+            const f = game.freighters[fIdx];
+            if (
+                checkCircleCollision(
+                    f.x,
+                    f.y,
+                    f.radius,
+                    scrap.x,
+                    scrap.y,
+                    sRadius,
+                )
+            ) {
+                const dx = scrap.x - f.x;
+                const dy = scrap.y - f.y;
+                const dist = Math.hypot(dx, dy) || 1;
+                scrap.applyImpulse(
+                    Math.cos(f.angle) * f.speed * 1.2 + (dx / dist) * 60,
+                    Math.sin(f.angle) * f.speed * 1.2 + (dy / dist) * 60,
+                );
+                scrap.x += (dx / dist) * 5;
+                scrap.y += (dy / dist) * 5;
+            }
+        }
+
+        // 5. Scrap vs Tugs
+        for (let tIdx = 0; tIdx < (game.tugs ? game.tugs.length : 0); tIdx++) {
+            const tug = game.tugs[tIdx];
+            if (
+                checkCircleCollision(
+                    tug.x,
+                    tug.y,
+                    tug.radius,
+                    scrap.x,
+                    scrap.y,
+                    sRadius,
+                )
+            ) {
+                const dx = scrap.x - tug.x;
+                const dy = scrap.y - tug.y;
+                const dist = Math.hypot(dx, dy) || 1;
+                scrap.applyImpulse(
+                    Math.cos(tug.angle) * tug.speed + (dx / dist) * 50,
+                    Math.sin(tug.angle) * tug.speed + (dy / dist) * 50,
+                );
+                scrap.x += (dx / dist) * 5;
+                scrap.y += (dy / dist) * 5;
+            }
+        }
+
+        // 6. Scrap vs Projectiles
+        for (let pIdx = game.projectiles.length - 1; pIdx >= 0; pIdx--) {
+            const proj = game.projectiles[pIdx];
+            if (
+                checkCircleCollision(
+                    proj.x,
+                    proj.y,
+                    proj.radius,
+                    scrap.x,
+                    scrap.y,
+                    sRadius,
+                )
+            ) {
+                scrap.applyImpulse(
+                    Math.cos(proj.angle) * 180,
+                    Math.sin(proj.angle) * 180,
+                );
+                removeProjectile(game, proj);
+            }
+        }
+
+        // 7. Scrap vs Beams
+        for (let bIdx = 0; bIdx < game.beams.length; bIdx++) {
+            const beam = game.beams[bIdx];
+            if (checkLineCircleCollision(beam, scrap.x, scrap.y, sRadius)) {
+                scrap.applyImpulse(
+                    Math.cos(beam.angle) * 140,
+                    Math.sin(beam.angle) * 140,
+                );
             }
         }
     }
@@ -890,6 +1211,7 @@ export function handleCollisions(game) {
     checkTugCollisions(game);
     checkWarpGateCollisions(game);
     checkMineCollisions(game);
+    checkScrapCollisions(game);
 }
 
 /**
