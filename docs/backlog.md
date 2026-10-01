@@ -5,8 +5,39 @@
 # Bugs & Improvements:
 
 ## TODO Priorities:
+  - Freighter doesn't appear to take damage
+  - mines and shots should deal enough damage to dislodge a container
+  - Camera zoom out system
+  
+  - Armour and Shields system
+    - angle of impact affects damage, 90 degree impact = full damage, 0 degree impact = no damage
+    - angle of impact affects collision damage too
+    - shields absorb damage
+    - heat effects
+    - armour piercing shots vs energy weapons
+    - energy wavelengths affect different materials differently
+    - shields allocated to different angles
+    - a menu to allocate shields to different angles like a clock face
+  
+  - Ship energy allocation system
+    - energy allocated to weapons, shields (wave lengths 1-4), engines (forward/turning), life support, repair systems, energy asorption (collect energy from sun, shield impacts, debris collection?), 
+    - a menu to allocate energy to different angles like a clock face 0-8 / 0-16?
 
-
+  - Artwork/animation system
+    - ship, rockets/thrusters, rocket rails, damaged ship, dead ship, animation states (firing, thrusting, take damage, explode, different ways of dieing, collecting, mining, docking, warping)
+  
+  - Improve artwork for each entity
+    - ship
+    - freighter
+    - tugship
+    - containers
+    - debris
+    - explosions
+    - collisions
+    - mines
+    - shots
+    - asteroids
+    - sun
 
 ## Gameplay
 
