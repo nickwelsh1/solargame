@@ -1,9 +1,15 @@
 import { createAsteroid } from '../entities/Asteroid.js';
 import { createCargoContainer } from '../entities/CargoContainer.js';
 import { createDialogue } from '../entities/Dialogue.js';
+import { createFreighter } from '../entities/Freighter.js';
+import { createMine } from '../entities/Mine.js';
 import { Particle } from '../entities/Particle.js';
 import { Planet } from '../entities/Planet.js';
+import { createResearchStation } from '../entities/ResearchStation.js';
+import { createSatellite } from '../entities/Satellite.js';
 import { createShip } from '../entities/Ship.js';
+import { createTugShip } from '../entities/TugShip.js';
+import { createWarpGate } from '../entities/WarpGate.js';
 import { randomMinMax } from '../utils/helpers.js';
 import { startTimer } from './timer.js';
 
@@ -22,9 +28,6 @@ export function createSpawner(game) {
         },
 
         spanInitialPlanets() {
-            // Clear existing planets
-            // planets = [];
-
             // Spawn 1-3 planets
             const planetCount = randomMinMax(1, 3);
 
@@ -36,6 +39,87 @@ export function createSpawner(game) {
                 }
             }
             console.log('planets spawned:', game.planets.length);
+        },
+
+        spawnSatellites() {
+            game.planets.forEach((planet) => {
+                const count = randomMinMax(1, 2);
+                for (let i = 0; i < count; i++) {
+                    const orbitDist = planet.radius + 60 + i * 50;
+                    const initialAngle = i * Math.PI + Math.random();
+                    const orbitSpeed =
+                        (0.0003 + Math.random() * 0.0002) *
+                        (Math.random() < 0.5 ? 1 : -1);
+                    const satellite = createSatellite(
+                        game,
+                        planet,
+                        orbitDist,
+                        initialAngle,
+                        orbitSpeed,
+                    );
+                    game.satellites.push(satellite);
+                    game.entities.push(satellite);
+                }
+            });
+            console.log('satellites spawned:', game.satellites.length);
+        },
+
+        spawnWarpGates() {
+            const gateA = createWarpGate(game, 600, 600, 'Gate Alpha');
+            const gateB = createWarpGate(
+                game,
+                game.world.width - 600,
+                game.world.height - 600,
+                'Gate Beta',
+            );
+            gateA.link(gateB);
+            gateB.link(gateA);
+
+            game.warpGates.push(gateA, gateB);
+            game.entities.push(gateA, gateB);
+            console.log('warp gates spawned: 2');
+        },
+
+        spawnResearchStation() {
+            const stationX = game.world.width * 0.8;
+            const stationY = game.world.height * 0.25;
+            const station = createResearchStation(game, stationX, stationY);
+            game.researchStation = station;
+            game.entities.push(station);
+            console.log('research station spawned at:', stationX, stationY);
+        },
+
+        spawnFreighterAndTug() {
+            const fx = randomMinMax(500, game.world.width - 500);
+            const fy = randomMinMax(500, game.world.height - 500);
+            const angle = Math.random() * Math.PI * 2;
+            const freighter = createFreighter(game, fx, fy, angle, 4);
+            const tug = createTugShip(game, freighter);
+
+            game.freighters.push(freighter);
+            game.tugs.push(tug);
+            game.entities.push(freighter, tug);
+            console.log('freighter and escort tug spawned');
+        },
+
+        spawnMines() {
+            const mineCount = 8;
+            const minPlayerDist = 300;
+            const cx = game.world.width / 2;
+            const cy = game.world.height / 2;
+
+            for (let i = 0; i < mineCount; i++) {
+                let mx = randomMinMax(150, game.world.width - 150);
+                let my = randomMinMax(150, game.world.height - 150);
+                while (Math.hypot(mx - cx, my - cy) < minPlayerDist) {
+                    mx = randomMinMax(150, game.world.width - 150);
+                    my = randomMinMax(150, game.world.height - 150);
+                }
+                const mine = createMine(game, mx, my);
+                game.mines.push(mine);
+                game.entities.push(mine);
+            }
+            console.log('mines spawned:', game.mines.length);
         },
 
         createParticles() {
@@ -112,33 +196,50 @@ export function initGame(game) {
     game.state.screen = 'game';
     game.state.score = 0;
     game.state.game_over = false;
+    game.state.game_won = false;
+    game.state.deliveredContainers = 0;
     game.ui.dialogueText = '';
-    game.containers = [];
-    game.scrap = [];
-    game.shipExplosion = null;
-    startTimer(game, 5);
-    game.dialogue = createDialogue(game);
-    game.entities.push(game.dialogue);
-    game.ship = createShip(game);
-    game.entities.push(game.ship);
-    game.spawner.spanInitialPlanets();
-    game.spawner.createParticles();
-    game.spawner.spawnInitialAsteroids();
-    game.spawner.spawnInitialContainers();
-    requestAnimationFrame((timestamp) => game.loop(timestamp));
-}
 
-export function resetGame(game) {
-    game.state.game_over = false;
-    game.ui.dialogueText = '';
-    game.shipExplosion = null;
-    initGame(game);
     game.asteroids = [];
     game.projectiles = [];
     game.beams = [];
     game.containers = [];
     game.scrap = [];
+    game.particles = [];
+    game.planets = [];
+    game.satellites = [];
+    game.warpGates = [];
+    game.researchStation = null;
+    game.freighters = [];
+    game.tugs = [];
+    game.mines = [];
     game.entities = [];
+    game.shipExplosion = null;
+
+    startTimer(game, 5);
+    game.dialogue = createDialogue(game);
+    game.entities.push(game.dialogue);
+    game.ship = createShip(game);
+    game.entities.push(game.ship);
+
+    game.spawner.spanInitialPlanets();
+    game.spawner.spawnSatellites();
+    game.spawner.spawnWarpGates();
+    game.spawner.spawnResearchStation();
+    game.spawner.spawnFreighterAndTug();
+    game.spawner.spawnMines();
+    game.spawner.createParticles();
     game.spawner.spawnInitialAsteroids();
     game.spawner.spawnInitialContainers();
+
+    requestAnimationFrame((timestamp) => game.loop(timestamp));
+}
+
+export function resetGame(game) {
+    game.state.game_over = false;
+    game.state.game_won = false;
+    game.state.deliveredContainers = 0;
+    game.ui.dialogueText = '';
+    game.shipExplosion = null;
+    initGame(game);
 }

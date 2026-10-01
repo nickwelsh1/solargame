@@ -33,6 +33,12 @@ function initGameObject(game) {
     game.projectiles = [];
     game.particles = [];
     game.planets = [];
+    game.satellites = [];
+    game.freighters = [];
+    game.tugs = [];
+    game.warpGates = [];
+    game.researchStation = null;
+    game.mines = [];
     game.dialogue = null;
     game.beams = [];
     game.containers = [];
@@ -221,6 +227,30 @@ function loop(game, timestamp) {
             game.ship.shoot();
         }
         game.ship.update(deltaTime);
+
+        game.satellites.forEach(satellite => {
+            satellite.update(deltaTime);
+        });
+
+        game.warpGates.forEach(gate => {
+            gate.update(deltaTime);
+        });
+
+        if (game.researchStation) {
+            game.researchStation.update(deltaTime);
+        }
+
+        game.freighters.forEach(freighter => {
+            freighter.update(deltaTime);
+        });
+
+        game.tugs.forEach(tug => {
+            tug.update(deltaTime);
+        });
+
+        game.mines.forEach(mine => {
+            mine.update(deltaTime);
+        });
 
         game.asteroids.forEach(asteroid => {
             asteroid.update(deltaTime);
