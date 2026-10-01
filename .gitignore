@@ -95,3 +95,6 @@ dist
 
 # Devin temp scripts
 .devin/temp/
+
+# Playwright MCP artifacts
+.playwright-mcp/
