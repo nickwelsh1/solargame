@@ -31,13 +31,12 @@ function draw() {
     ) {
         return;
     }
+    this.textColor = this.game.state.game_won
+        ? 'hsl(160, 100%, 75%)'
+        : 'hsl(57, 100%, 83%)';
     this.game.ctx.font = `bold ${this.fontSize}px sans-serif`;
     this.game.ctx.textAlign = 'center';
     this.game.ctx.textBaseline = 'middle';
-
-    // Draw the rectangle
-    // ctx.fillStyle = 'skyblue'; // Or any color you prefer
-    // ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
 
     this.drawRoundedRectangle(
         this.rectX,
@@ -48,7 +47,7 @@ function draw() {
 
     this.drawText(
         this.x,
-        this.game.camera.height * 0.45,
+        this.game.camera.height * 0.44,
         this.game.ui.dialogueText,
     );
 }
@@ -98,9 +97,14 @@ function drawRoundedRectangle(rectX, rectY, rectWidth, rectHeight) {
 }
 
 function drawText(x, y, text) {
-    // Draw the text
-    this.game.ctx.fillStyle = this.textColor; // Or any color you prefer
-    this.game.ctx.fillText(text, x, y);
+    if (!text) return;
+    const lines = text.split('\n');
+    const lineSpacing = this.fontSize * 1.25;
+    const startY = y - ((lines.length - 1) * lineSpacing) / 2;
+    this.game.ctx.fillStyle = this.textColor;
+    lines.forEach((line, index) => {
+        this.game.ctx.fillText(line, x, startY + index * lineSpacing);
+    });
 }
 
 function update(deltaTime) {

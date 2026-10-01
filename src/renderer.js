@@ -92,6 +92,78 @@ function drawMiniMap(ctx, game) {
         );
     });
 
+    // Draw mini research station
+    if (game.researchStation) {
+        ctx.fillStyle = '#00ffd5';
+        ctx.fillRect(
+            game.MINIMAP_MARGIN + game.researchStation.x * scaleFactor - 2,
+            game.MINIMAP_MARGIN + game.researchStation.y * scaleFactor - 2,
+            5,
+            5,
+        );
+    }
+
+    // Draw mini warp gates
+    game.warpGates?.forEach((gate) => {
+        ctx.fillStyle = '#c084fc';
+        ctx.fillRect(
+            game.MINIMAP_MARGIN + gate.x * scaleFactor - 1,
+            game.MINIMAP_MARGIN + gate.y * scaleFactor - 1,
+            3,
+            3,
+        );
+    });
+
+    // Draw mini satellites
+    game.satellites?.forEach((sat) => {
+        ctx.fillStyle = '#93c5fd';
+        ctx.fillRect(
+            game.MINIMAP_MARGIN + sat.x * scaleFactor,
+            game.MINIMAP_MARGIN + sat.y * scaleFactor,
+            2,
+            2,
+        );
+    });
+
+    // Draw mini freighters
+    game.freighters?.forEach((f) => {
+        ctx.fillStyle = '#fb923c';
+        ctx.fillRect(
+            game.MINIMAP_MARGIN + f.x * scaleFactor - 2,
+            game.MINIMAP_MARGIN + f.y * scaleFactor - 1,
+            5,
+            3,
+        );
+    });
+
+    // Draw mini tugs
+    game.tugs?.forEach((t) => {
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(
+            game.MINIMAP_MARGIN + t.x * scaleFactor,
+            game.MINIMAP_MARGIN + t.y * scaleFactor,
+            2,
+            2,
+        );
+    });
+
+    // Draw mini mines (if active or near ship)
+    game.mines?.forEach((m) => {
+        if (
+            m.state === 'PURSUING' ||
+            (game.ship &&
+                Math.hypot(m.x - game.ship.x, m.y - game.ship.y) < 300)
+        ) {
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(
+                game.MINIMAP_MARGIN + m.x * scaleFactor,
+                game.MINIMAP_MARGIN + m.y * scaleFactor,
+                2,
+                2,
+            );
+        }
+    });
+
     // Draw mini ship
     ctx.fillStyle = 'yellow';
     ctx.fillRect(
@@ -312,13 +384,14 @@ function drawHUD(ctx, game) {
     ctx.shadowColor = 'rgba(0,0,0,0.7)';
     ctx.shadowBlur = 6;
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    const delivered = game.state.deliveredContainers || 0;
     ctx.fillText(
         `Score: ${game.state.score}   |   ${timeText}`,
         game.camera.width / 2,
         10,
     );
     ctx.fillText(
-        `${remaining}/${game.state.initialContainerCount} containers   |   ${game.planets.length} planets`,
+        `Deliveries: ${delivered}/3   |   ${remaining}/${game.state.initialContainerCount} containers   |   ${game.planets.length} planets`,
         game.camera.width / 2,
         10 + lineH,
     );
@@ -465,6 +538,30 @@ export function createRenderer() {
                 planet.draw();
             });
 
+            if (game.researchStation) {
+                game.researchStation.draw();
+            }
+
+            game.warpGates?.forEach((gate) => {
+                gate.draw();
+            });
+
+            game.satellites?.forEach((satellite) => {
+                satellite.draw();
+            });
+
+            game.freighters?.forEach((freighter) => {
+                freighter.draw();
+            });
+
+            game.tugs?.forEach((tug) => {
+                tug.draw();
+            });
+
+            game.mines?.forEach((mine) => {
+                mine.draw();
+            });
+
             game.scrap.forEach((s) => {
                 s.draw();
             });
@@ -476,6 +573,9 @@ export function createRenderer() {
             game.ship.draw();
 
             game.shipExplosion?.draw();
+            game.explosions?.forEach((e) => {
+                e.draw();
+            });
 
             game.asteroids.forEach((asteroid) => {
                 asteroid.draw();
@@ -535,7 +635,7 @@ export function createRenderer() {
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
                 this.ctx.fillText(
-                    'RESTART',
+                    game.state.game_won ? 'PLAY AGAIN' : 'RESTART',
                     game.resetBtnSize.posX + game.resetBtnSize.width / 2,
                     game.resetBtnSize.posY + game.resetBtnSize.height / 2,
                 );

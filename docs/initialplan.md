@@ -226,12 +226,12 @@ solargame/
 
 ### Manual Testing Checklist
 
-- [ ] Ship movement and rotation
-- [ ] Weapon switching and firing
-- [ ] Asteroid collision and splitting
-- [ ] Game over and restart
-- [ ] Mobile touch controls
-- [ ] Canvas resizing
+- [x] Ship movement and rotation
+- [x] Weapon switching and firing
+- [x] Asteroid collision and splitting
+- [x] Game over and restart
+- [x] Mobile touch controls
+- [x] Canvas resizing
 
 ### Automated Testing
 
