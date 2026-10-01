@@ -121,18 +121,24 @@ describe('Satellites', () => {
         expect(game.ship.health).toBe(47); // 50 - 3 = 47
         expect(game.ship.x).toBeGreaterThan(515); // pushed out
 
-        // 2. Small asteroid collision: gets strong repulsive push
+        // 2. Small asteroid collision: gets moderate repulsive push, both take damage
         const smallAst = {
             x: 520,
             y: 500,
             radius: 20,
+            health: 20,
+            maxHealth: 20,
             velocityX: -10,
             velocityY: 0,
             mass: 500,
         };
+        const satHealthBefore = sat.health;
         game.asteroids.push(smallAst);
         handleCollisions(game);
-        expect(smallAst.velocityX).toBeGreaterThan(40); // launched away
+        expect(smallAst.velocityX).toBeGreaterThan(0); // bounced away
+        expect(smallAst.velocityX).toBeLessThan(30); // moderate force, not excessive
+        expect(sat.health).toBeLessThan(satHealthBefore); // satellite took damage
+        expect(smallAst.health).toBeLessThan(20); // asteroid took damage
 
         // 3. Tug collision: pushed away and repair interrupted
         const freighter = createFreighter(game, 800, 800, 0, 0);

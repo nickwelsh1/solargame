@@ -13,6 +13,8 @@ function initAsteroid(game, x, y, radius) {
     this.saturation = randomMinMax(50, 90);
     this.lightness = randomMinMax(10, 20); // Increased minimum to 45 and range to give 45-80
     this.mass = Math.PI * this.radius * this.radius * 3;
+    this.health = Math.round(this.radius);
+    this.maxHealth = this.health;
 
     // Add rotation properties
     this.rotationAngle = Math.random() * Math.PI * 2; // Random initial rotation
@@ -103,11 +105,23 @@ function split() {
     return [newAsteroid1, newAsteroid2];
 }
 
+function takeDamage(amount) {
+    this.health -= amount;
+    if (this.health <= 0) {
+        this.split();
+        const idx = this.game.asteroids.indexOf(this);
+        if (idx !== -1) this.game.asteroids.splice(idx, 1);
+        const eidx = this.game.entities.indexOf(this);
+        if (eidx !== -1) this.game.entities.splice(eidx, 1);
+    }
+}
+
 export function createAsteroid(game, x, y, size) {
     const asteroid = {};
     initAsteroid.call(asteroid, game, x, y, size);
     asteroid.draw = draw;
     asteroid.update = update;
     asteroid.split = split;
+    asteroid.takeDamage = takeDamage;
     return asteroid;
 }

@@ -466,7 +466,7 @@ function checkSatelliteCollisions(game) {
             }
         }
 
-        // 2. Asteroids vs Satellite (bounce; smaller asteroids pushed away with force)
+        // 2. Asteroids vs Satellite (bounce; both take small damage; moderate push force)
         for (let aIdx = 0; aIdx < game.asteroids.length; aIdx++) {
             const ast = game.asteroids[aIdx];
             if (
@@ -487,17 +487,32 @@ function checkSatelliteCollisions(game) {
 
                 const overlap = ast.radius + sat.radius - dist;
                 if (overlap > 0) {
-                    ast.x += nx * (overlap + 4);
-                    ast.y += ny * (overlap + 4);
+                    ast.x += nx * (overlap + 2);
+                    ast.y += ny * (overlap + 2);
                 }
 
                 const dot = ast.velocityX * nx + ast.velocityY * ny;
                 if (dot < 0) {
-                    // Smaller asteroids pushed away with extra force
-                    const bounceFactor = ast.radius < 35 ? 2.5 : 1.8;
-                    const pushExtra = ast.radius < 35 ? 65 : 0;
-                    ast.velocityX += -bounceFactor * dot * nx + nx * pushExtra;
-                    ast.velocityY += -bounceFactor * dot * ny + ny * pushExtra;
+                    // Moderate bounce factor without excessive push force
+                    const bounceFactor = ast.radius < 35 ? 1.5 : 1.3;
+                    ast.velocityX += -bounceFactor * dot * nx;
+                    ast.velocityY += -bounceFactor * dot * ny;
+                }
+
+                // Both take a small amount of damage on collision
+                sat.takeDamage(4);
+                if (ast.takeDamage) {
+                    ast.takeDamage(5);
+                } else if (ast.health !== undefined) {
+                    ast.health -= 5;
+                    if (ast.health <= 0) {
+                        destroyAsteroid(
+                            game,
+                            ast,
+                            ast.velocityX,
+                            ast.velocityY,
+                        );
+                    }
                 }
             }
         }
